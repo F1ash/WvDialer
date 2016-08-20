@@ -1,0 +1,12 @@
+[pro.russianfedora.wvdialer.run]
+Name=Run WvDialer
+Description=User WvDialer
+Policy=yes
+Persistence=session
+
+[pro.russianfedora.wvdialer.kill]
+Name=Kill WvDialer
+Description=User WvDialer
+Policy=yes
+Persistence=session
+

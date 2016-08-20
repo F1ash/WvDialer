@@ -1,0 +1,9 @@
+[Icon Theme]
+Name=WvDialer
+Comment=WvDialer Icon Set
+Inherits=hicolor,default
+Directories=64x64/status
+
+[64x64/status]
+Size=64
+Context=Status

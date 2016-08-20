@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="index.theme">icons/index.theme</file>
+        <file alias="wvdialer.png">icons/64x64/status/wvdialer.png</file>
+        <file>icons/64x64/status/down.png</file>
+        <file>icons/64x64/status/up.png</file>
+        <file>icons/64x64/status/view-refresh.png</file>
+    </qresource>
+</RCC>

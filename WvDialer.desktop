@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=WvDialer
+GenericName=WvDial connector
+Type=Application
+Categories=Utility;System;Qt;
+Icon=wvdialer
+Exec=WvDialer
+Terminal=false
+StartupNotify=true

@@ -1,0 +1,20 @@
+
+set(wvdialer_helper_SRCS
+    wvdialer_helper.cpp)
+
+qt5_wrap_cpp (HELPER_MOC_SOURCES wvdialer_helper.h)
+
+add_executable(wvdialer_helper ${wvdialer_helper_SRCS} ${HELPER_MOC_SOURCES})
+target_link_libraries(wvdialer_helper KF5::Auth)
+install(TARGETS wvdialer_helper DESTINATION ${KAUTH_HELPER_INSTALL_DIR})
+#message("KAUTH_HELPER_INSTALL_DIR: ${KAUTH_HELPER_INSTALL_DIR}")
+#message("KAUTH_POLICY_FILES_INSTALL_DIR: ${KAUTH_POLICY_FILES_INSTALL_DIR}")
+#message("DBUS_SYSTEM_SERVICES_INSTALL_DIR: ${DBUS_SYSTEM_SERVICES_INSTALL_DIR}")
+
+kauth_install_helper_files(
+    wvdialer_helper
+    pro.russianfedora.wvdialer
+    root)
+kauth_install_actions(
+    pro.russianfedora.wvdialer
+    actions.actions)
