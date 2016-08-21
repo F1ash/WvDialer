@@ -6,6 +6,7 @@
 #include <QScrollArea>
 #include <QVBoxLayout>
 #include <QCloseEvent>
+#include <QTimerEvent>
 #include <QSettings>
 #include "tray/traywidget.h"
 #include <kauth.h>
@@ -23,21 +24,22 @@ signals:
 
 private:
     bool                deviceExist, reloadFlag;
-    int                 PID;
+    int                 PID, timerID;
     QFileSystemWatcher *watcher;
     TrayIcon           *trayIcon;
     QVBoxLayout        *baseLayout;
     QWidget            *baseWdg;
     QScrollArea        *scrolled;
     QSettings           settings;
-    bool                getDeviceState() const;
+    bool                getFileExistanceState(const QString, const QString) const;
+    bool                getDirExistanceState(const QString, const QString) const;
 
 private slots:
     void                initTrayIcon();
     void                changeVisibility();
     void                trayIconActivated(QSystemTrayIcon::ActivationReason);
-
     void                closeEvent(QCloseEvent*);
+    void                timerEvent(QTimerEvent*);
     void                directoryChanged(QString);
     void                reloadConnection();
     void                killConnection();

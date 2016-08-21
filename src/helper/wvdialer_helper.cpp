@@ -17,7 +17,7 @@ QString WvDialHelper::get_key_varmap(const QVariantMap &args, const QString& key
     return value;
 }
 
-ActionReply WvDialHelper::run(QVariantMap args)
+ActionReply WvDialHelper::run(const QVariantMap args)
 {
     ActionReply reply;
  
@@ -44,7 +44,7 @@ ActionReply WvDialHelper::run(QVariantMap args)
     return reply;
 }
 
-ActionReply WvDialHelper::kill(QVariantMap args)
+ActionReply WvDialHelper::kill(const QVariantMap args)
 {
     ActionReply reply;
 

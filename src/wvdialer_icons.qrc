@@ -2,8 +2,13 @@
     <qresource prefix="/">
         <file alias="index.theme">icons/index.theme</file>
         <file alias="wvdialer.png">icons/64x64/status/wvdialer.png</file>
-        <file>icons/64x64/status/down.png</file>
-        <file>icons/64x64/status/up.png</file>
-        <file>icons/64x64/status/view-refresh.png</file>
+        <file alias="down.png">icons/64x64/status/down.png</file>
+        <file alias="up.png">icons/64x64/status/up.png</file>
+        <file alias="view-refresh.png">icons/64x64/status/view-refresh.png</file>
+        <file alias="wvdialer_close.png">icons/64x64/status/wvdialer_close.png</file>
+        <file alias="wvdialer_open.png">icons/64x64/status/wvdialer_open.png</file>
+        <file alias="wvdialer_reload.png">icons/64x64/status/wvdialer_reload.png</file>
+        <file alias="delete.png">icons/64x64/status/delete.png</file>
+        <file alias="exit.png">icons/64x64/status/exit.png</file>
     </qresource>
 </RCC>
