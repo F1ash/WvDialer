@@ -1,5 +1,6 @@
 #include <QProcess>
 #include "wvdialer_helper.h"
+#include <signal.h>
 
 WvDialHelper::WvDialHelper(QObject *parent) :
     QObject(parent)
@@ -56,10 +57,19 @@ ActionReply WvDialHelper::kill(const QVariantMap args)
         return reply;
     };
 
-    QString pid = get_key_varmap(args, "PID");;
-    int code = QProcess::execute(
-                "/usr/bin/kill",
-                QStringList()<<"-2"<<pid);
+    QString pid = get_key_varmap(args, "PID");
+    bool ok;
+    int _pid = pid.toInt(&ok);
+    //int code = QProcess::execute(
+    //            "/usr/bin/kill",
+    //            QStringList()<<"-2"<<pid);
+    if ( !ok ) {
+        QVariantMap err;
+        err["result"] = QString::number(-1);
+        reply.setData(err);
+        return reply;
+    };
+    int code = ::kill(_pid, SIGKILL);
 
     QVariantMap retdata;
     retdata["code"] = QString::number(code);
