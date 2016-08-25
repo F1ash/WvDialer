@@ -17,6 +17,7 @@ MainWindow::MainWindow(QWidget *parent) :
     reloadFlag = false;
     PID = -1;
     timerID = 0;
+    srvStatus = INACTIVE;
     baseLayout = nullptr;
     baseWdg = nullptr;
     scrolled = nullptr;
@@ -83,6 +84,7 @@ bool MainWindow::getDirExistanceState(const QString _dir1, const QString _dir2) 
 void MainWindow::closeEvent(QCloseEvent *ev)
 {
     if ( ev->type()==QEvent::Close ) {
+        reloadFlag = false;
         killConnection();
         settings.setValue("Geometry", saveGeometry());
         trayIcon->hide();
@@ -93,6 +95,7 @@ void MainWindow::timerEvent(QTimerEvent *ev)
 {
     ev->accept();
     if ( ev->timerId()==timerID ) {
+        /*
         if ( PID>1 ) {
             if ( !getDirExistanceState(PROC_DIR, QString::number(PID)) ) {
                 KNotification::event(
@@ -112,6 +115,30 @@ void MainWindow::timerEvent(QTimerEvent *ev)
             killTimer(timerID);
             timerID = 0;
         };
+        */
+        srvStatus = getServiceStatus();
+        /*
+        switch ( srvStatus ) {
+        case FAILED:
+            if ( !reloadFlag )
+                trayIcon->setIcon(
+                            QIcon::fromTheme("wvdialer_close",
+                                             QIcon(":/wvdialer_close.png")));
+            break;
+        case ACTIVE:
+            trayIcon->setIcon(
+                        QIcon::fromTheme("wvdialer_open",
+                                         QIcon(":/wvdialer_open.png")));
+            break;
+        case DEACTIVATING:
+            trayIcon->setIcon(
+                        QIcon::fromTheme("wvdialer_reload",
+                                         QIcon(":/wvdialer_reload.png")));
+            break;
+        default:
+            break;
+        };
+        */
     };
 }
 void MainWindow::directoryChanged(QString dir)
@@ -126,12 +153,10 @@ void MainWindow::directoryChanged(QString dir)
                     .arg("/dev/ttyUSB0")
                     .arg((deviceExist)? "":"dis");
             trayIcon->showMessage("WvDialer", msg);
-            reloadFlag = true;
             if (deviceExist) {
-                startWvDialProcess();
-            } else {
-                killConnection();
+                reloadFlag = true;
             };
+            killConnection();
         };
     };
 }
@@ -142,8 +167,11 @@ void MainWindow::reloadConnection()
         trayIcon->setIcon(
                     QIcon::fromTheme("wvdialer_reload",
                                      QIcon(":/wvdialer_reload.png")));
+        //trayIcon->setActionState(false);
         reloadFlag = true;
-        if ( PID>1 ) {
+        //if ( PID>1 ) {
+        srvStatus = getServiceStatus();
+        if ( srvStatus==ACTIVE ) {
             killConnection();
         } else {
             startWvDialProcess();
@@ -163,6 +191,7 @@ void MainWindow::reloadConnection()
 void MainWindow::killConnection()
 {
     // if PID>1, then kill wvdial session
+    /*
     if ( PID>1 ) {
         if ( getDirExistanceState(PROC_DIR, QString::number(PID)) ) {
             QFile f;
@@ -251,27 +280,75 @@ void MainWindow::killConnection()
                     "Connection not exist",
                     this);
     };
-    if ( !reloadFlag )
-        trayIcon->setIcon(
-                    QIcon::fromTheme("wvdialer_close",
-                                     QIcon(":/wvdialer_close.png")));
+    */
+
+    //trayIcon->setActionState(false);
+    QVariantMap args;
+    args["action"] = "stop";
+    Action act("pro.russianfedora.wvdialer.stop");
+    act.setHelperId("pro.russianfedora.wvdialer");
+    act.setArguments(args);
+    ExecuteJob *job = act.execute();
+    job->setAutoDelete(true);
+    if (job->exec()) {
+        QString code = job->data().value("code").toString();
+        KNotification::event(
+                    KNotification::Notification,
+                    "WvDialer",
+                    QString("Wvdial session closed with exit code: %1")
+                    .arg(code),
+                    this);
+        if ( !reloadFlag ) {
+            trayIcon->setIcon(
+                        QIcon::fromTheme("wvdialer_close",
+                                         QIcon(":/wvdialer_close.png")));
+            //killTimer(timerID);
+            //timerID = 0;
+        };
+        emit killed();
+    } else {
+        KNotification::event(
+                    KNotification::Notification,
+                    "WvDialer",
+                    QString("ERROR: %1\n%2")
+                    .arg(job->error()).arg(job->errorText()),
+                    this);
+    };
+    //trayIcon->setActionState(true);
 }
 void MainWindow::startWvDialProcess()
 {
-    if ( !reloadFlag ) return;
+    if ( !reloadFlag ) {
+        //trayIcon->setActionState(true);
+        return;
+    };
     // if device was connected, then run wvdial_helper
     if ( deviceExist ) {
         trayIcon->setIcon(
                     QIcon::fromTheme("wvdialer_reload",
                                      QIcon(":/wvdialer_reload.png")));
         QVariantMap args;
-        args["action"] = "run";
-        Action act("pro.russianfedora.wvdialer.run");
+        Action act;
+        switch (srvStatus) {
+        case INACTIVE:
+            args["action"] = "create";
+            act.setName("pro.russianfedora.wvdialer.create");
+            break;
+        case FAILED:
+            args["action"] = "start";
+            act.setName("pro.russianfedora.wvdialer.start");
+            break;
+        default:
+            return;
+        };
+        //args["action"] = "run";
+        //Action act("pro.russianfedora.wvdialer.run");
         act.setHelperId("pro.russianfedora.wvdialer");
         act.setArguments(args);
         ExecuteJob *job = act.execute();
         job->setAutoDelete(true);
         if (job->exec()) {
+            /*
             QString state = job->data().value("result").toString();
             PID = job->data().value("PID").toInt();
             KNotification::event(
@@ -279,6 +356,14 @@ void MainWindow::startWvDialProcess()
                         "WvDialer",
                         QString("Device is %1 (PID: %2).")
                         .arg(state).arg(PID),
+                        this);
+             */
+            QString code = job->data().value("code").toString();
+            KNotification::event(
+                        KNotification::Notification,
+                        "WvDialer",
+                        QString("Wvdial session started with exit code: %1.")
+                        .arg(code),
                         this);
             trayIcon->setIcon(
                         QIcon::fromTheme("wvdialer_open",
@@ -297,4 +382,42 @@ void MainWindow::startWvDialProcess()
         };
     };
     reloadFlag = false;
+    //trayIcon->setActionState(true);
+}
+SRV_STATUS MainWindow::getServiceStatus()
+{
+    SRV_STATUS res = INACTIVE;
+    QVariantMap args;
+    args["action"] = "is-active";
+    Action act("pro.russianfedora.wvdialer.status");
+    act.setHelperId("pro.russianfedora.wvdialer");
+    act.setArguments(args);
+    ExecuteJob *job = act.execute();
+    job->setAutoDelete(true);
+    if (job->exec()) {
+        QString status = job->data().value("result").toString();
+        if ( status=="inactive" ) {
+            res = INACTIVE;
+        } else if ( status=="active" ) {
+            res = ACTIVE;
+        } else if ( status=="failed" ) {
+            res = FAILED;
+        } else if ( status=="deactivating" ) {
+            res = DEACTIVATING;
+        };
+        //KNotification::event(
+        //            KNotification::Notification,
+        //            "WvDialer",
+        //            QString("Wvdial session status: %1 (%2)")
+        //            .arg(status).arg(res),
+        //            this);
+    } else {
+        //KNotification::event(
+        //            KNotification::Notification,
+        //            "WvDialer",
+        //            QString("ERROR: %1\n%2")
+        //            .arg(job->error()).arg(job->errorText()),
+        //            this);
+    };
+    return res;
 }

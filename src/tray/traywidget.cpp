@@ -29,3 +29,8 @@ TrayIcon::TrayIcon(QWidget *parent)
     setContextMenu(trayIconMenu);
     setVisible(true);
 }
+void TrayIcon::setActionState(bool state)
+{
+    reloadAction->setEnabled(state);
+    killAction->setEnabled(state);
+}

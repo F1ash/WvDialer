@@ -16,11 +16,10 @@ public :
   QAction   *reloadAction;
   QAction   *killAction;
   QAction   *closeAction;
+  void       setActionState(bool);
 
 private :
   QMenu     *trayIconMenu;
-
-public slots:
 };
 
 #endif

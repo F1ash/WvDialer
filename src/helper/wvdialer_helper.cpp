@@ -96,14 +96,14 @@ ActionReply WvDialHelper::create(const QVariantMap args) const
     QProcess proc;
     proc.setProgram("/usr/bin/systemd-run");
     proc.setArguments(QStringList()
-                      <<"unit"<<WVDIALER
-                      <<"service-type"<<"forking"
+                      <<"--unit"<<WVDIALER
+                      <<"--service-type"<<"simple"
                       <<"/usr/bin/wvdial");
     proc.start();
     proc.waitForFinished();
 
     QVariantMap retdata;
-    retdata["code"] = QString::number(proc.exitCode());
+    retdata["code"]     = QString::number(proc.exitCode());
 
     reply.setData(retdata);
     return reply;
@@ -128,7 +128,7 @@ ActionReply WvDialHelper::start(const QVariantMap args) const
     proc.waitForFinished();
 
     QVariantMap retdata;
-    retdata["code"] = QString::number(proc.exitCode());
+    retdata["code"]     = QString::number(proc.exitCode());
 
     reply.setData(retdata);
     return reply;
@@ -151,13 +151,17 @@ ActionReply WvDialHelper::status(const QVariantMap args) const
     proc.setArguments(QStringList()<<act<<WVDIALER);
     proc.start();
     proc.waitForReadyRead();
-    // 'inactive' -- service not exist
-    // 'active'   -- service exist and running
-    // 'failed'   -- service exist and stopped
+    // 'inactive'       -- service not exist
+    // 'active'         -- service exist and running
+    // 'failed'         -- service exist and stopped
+    // 'deactivating'   -- service exist and deactivating
     QByteArray result = proc.readAll();
+    proc.waitForFinished();
 
     QVariantMap retdata;
-    retdata["result"] = QString::fromUtf8(result.data());
+    retdata["code"]     = QString::number(proc.exitCode());
+    retdata["result"]   = QString::fromUtf8(
+                result.data(), result.size()-1);
 
     reply.setData(retdata);
     return reply;
@@ -182,7 +186,7 @@ ActionReply WvDialHelper::stop(const QVariantMap args) const
     proc.waitForFinished();
 
     QVariantMap retdata;
-    retdata["code"] = QString::number(proc.exitCode());
+    retdata["code"]     = QString::number(proc.exitCode());
 
     reply.setData(retdata);
     return reply;

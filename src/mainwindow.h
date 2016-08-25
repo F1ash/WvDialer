@@ -13,6 +13,13 @@
 #include <knotification.h>
 using namespace KAuth;
 
+enum SRV_STATUS {
+    INACTIVE = -1,
+    ACTIVE,
+    FAILED,
+    DEACTIVATING
+};
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -25,6 +32,7 @@ signals:
 private:
     bool                deviceExist, reloadFlag;
     int                 PID, timerID;
+    SRV_STATUS          srvStatus;
     QFileSystemWatcher *watcher;
     TrayIcon           *trayIcon;
     QVBoxLayout        *baseLayout;
@@ -44,6 +52,7 @@ private slots:
     void                reloadConnection();
     void                killConnection();
     void                startWvDialProcess();
+    SRV_STATUS          getServiceStatus();
 };
 
 #endif // MAINWINDOW_H

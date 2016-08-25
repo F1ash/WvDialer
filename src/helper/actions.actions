@@ -10,3 +10,27 @@ Description=User WvDialer
 Policy=yes
 Persistence=session
 
+[pro.russianfedora.wvdialer.create]
+Name=Create WvDialer service
+Description=User WvDialer
+Policy=yes
+Persistence=session
+
+[pro.russianfedora.wvdialer.start]
+Name=Start WvDialer service
+Description=User WvDialer
+Policy=yes
+Persistence=session
+
+[pro.russianfedora.wvdialer.status]
+Name=Get status of WvDialer service
+Description=User WvDialer
+Policy=yes
+Persistence=session
+
+[pro.russianfedora.wvdialer.stop]
+Name=Stop WvDialer service
+Description=User WvDialer
+Policy=yes
+Persistence=session
+
