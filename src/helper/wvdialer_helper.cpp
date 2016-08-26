@@ -92,6 +92,7 @@ ActionReply WvDialHelper::create(const QVariantMap args) const
         return reply;
     };
 
+    QVariantMap retdata;
     // Start new transient service unit: wvdialer.service
     QProcess proc;
     proc.setProgram("/usr/bin/systemd-run");
@@ -99,11 +100,12 @@ ActionReply WvDialHelper::create(const QVariantMap args) const
                       <<"--unit"<<WVDIALER
                       <<"--service-type"<<"simple"
                       <<"/usr/bin/wvdial");
-    proc.start();
-    proc.waitForFinished();
-
-    QVariantMap retdata;
-    retdata["code"]     = QString::number(proc.exitCode());
+    proc.start(QIODevice::ReadOnly);
+    if ( proc.waitForStarted() && proc.waitForFinished() ) {
+        retdata["code"]     = QString::number(proc.exitCode());
+    } else {
+        retdata["code"]     = QString::number(-1);
+    };
 
     reply.setData(retdata);
     return reply;
@@ -121,14 +123,16 @@ ActionReply WvDialHelper::start(const QVariantMap args) const
         return reply;
     };
 
+    QVariantMap retdata;
     QProcess proc;
     proc.setProgram("/usr/bin/systemctl");
     proc.setArguments(QStringList()<<act<<WVDIALER);
-    proc.start();
-    proc.waitForFinished();
-
-    QVariantMap retdata;
-    retdata["code"]     = QString::number(proc.exitCode());
+    proc.start(QIODevice::ReadOnly);
+    if ( proc.waitForStarted() && proc.waitForFinished() ) {
+        retdata["code"]     = QString::number(proc.exitCode());
+    } else {
+        retdata["code"]     = QString::number(-1);
+    };
 
     reply.setData(retdata);
     return reply;
@@ -146,22 +150,25 @@ ActionReply WvDialHelper::status(const QVariantMap args) const
         return reply;
     };
 
+    QVariantMap retdata;
+    QByteArray result;
     QProcess proc;
     proc.setProgram("/usr/bin/systemctl");
     proc.setArguments(QStringList()<<act<<WVDIALER);
-    proc.start();
-    proc.waitForReadyRead();
-    // 'inactive'       -- service not exist
-    // 'active'         -- service exist and running
-    // 'failed'         -- service exist and stopped
-    // 'deactivating'   -- service exist and deactivating
-    QByteArray result = proc.readAll();
-    proc.waitForFinished();
-
-    QVariantMap retdata;
-    retdata["code"]     = QString::number(proc.exitCode());
-    retdata["result"]   = QString::fromUtf8(
-                result.data(), result.size()-1);
+    proc.start(QIODevice::ReadOnly);
+    if ( proc.waitForStarted() && proc.waitForFinished() ) {
+        // 'inactive'       -- service not exist
+        // 'active'         -- service exist and running
+        // 'failed'         -- service exist and stopped
+        // 'deactivating'   -- service exist and deactivating
+        result = proc.readAll();
+        retdata["result"]   = QString::fromUtf8(
+                    result.data(), result.size()-1);
+        retdata["code"]     = QString::number(proc.exitCode());
+    } else {
+        retdata["result"]   = "failed";
+        retdata["code"]     = QString::number(-1);
+    };
 
     reply.setData(retdata);
     return reply;
@@ -179,14 +186,16 @@ ActionReply WvDialHelper::stop(const QVariantMap args) const
         return reply;
     };
 
+    QVariantMap retdata;
     QProcess proc;
     proc.setProgram("/usr/bin/systemctl");
     proc.setArguments(QStringList()<<act<<WVDIALER);
-    proc.start();
-    proc.waitForFinished();
-
-    QVariantMap retdata;
-    retdata["code"]     = QString::number(proc.exitCode());
+    proc.start(QIODevice::ReadOnly);
+    if ( proc.waitForStarted() && proc.waitForFinished() ) {
+        retdata["code"]     = QString::number(proc.exitCode());
+    } else {
+        retdata["code"]     = QString::number(-1);
+    };
 
     reply.setData(retdata);
     return reply;

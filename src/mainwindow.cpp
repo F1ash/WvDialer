@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include <QDir>
-#define DEV_DIR QString("/dev")
+#include <QTimer>
+#define DEV_DIR  QString("/dev")
 #define PROC_DIR QString("/proc")
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -15,9 +16,11 @@ MainWindow::MainWindow(QWidget *parent) :
     setWindowIcon(QIcon::fromTheme("wvdialer", QIcon(":/wvdialer.png")));
     deviceExist = false;
     reloadFlag = false;
+    connected = false;
     PID = -1;
     timerID = 0;
     srvStatus = INACTIVE;
+    wvdialerUnit = nullptr;
     baseLayout = nullptr;
     baseWdg = nullptr;
     scrolled = nullptr;
@@ -81,10 +84,49 @@ bool MainWindow::getDirExistanceState(const QString _dir1, const QString _dir2) 
     d.setPath(_dirPath);
     return d.exists();
 }
+void MainWindow::createWvDialerAccessor()
+{
+    //if ( nullptr!=wvdialerUnit ) return;
+    QDBusSignature sig("const QString&, const QVariantMap&, const QStringList&");
+    /*
+    wvdialerUnit = new QDBusInterface(
+                "org.freedesktop.systemd1",
+                "/org/freedesktop/systemd1/unit/wvdialer_2eservice",
+                "org.freedesktop.DBus.Properties",
+                QDBusConnection::systemBus(),
+                this);
+    if ( wvdialerUnit->isValid() ) {
+        connect(wvdialerUnit,
+                "PropertiesChanged",
+                this, SLOT(wvdialerUnitStatusReceiver(
+                               const QString&, const QVariantMap&, const QStringList&)));
+        qDebug()<<"dbus interface created and connected";
+    } else {
+        QTimer::singleShot(1000, this, SLOT(createWvDialerAccessor()));
+    };
+    */
+    connected = QDBusConnection::systemBus()
+            .connect(
+                "org.freedesktop.systemd1.Unit",
+                "/org/freedesktop/systemd1/unit/wvdialer_2eservice",
+                "org.freedesktop.DBus.Properties",
+                "PropertiesChanged",
+                sig.signature(),
+                this,
+                "wvdialerUnitStatusReceiver");
+    if ( !connected )
+        QTimer::singleShot(1000, this, SLOT(createWvDialerAccessor()));
+}
+void MainWindow::wvdialerUnitStatusReceiver(
+        const QString &s, const QVariantMap &v, const QStringList &l)
+{
+    qDebug()<<"new state"<<s<<v<<l;
+}
 void MainWindow::closeEvent(QCloseEvent *ev)
 {
     if ( ev->type()==QEvent::Close ) {
-        reloadFlag = false;
+        killTimer(timerID);
+        timerID = 0;
         killConnection();
         settings.setValue("Geometry", saveGeometry());
         trayIcon->hide();
@@ -117,7 +159,7 @@ void MainWindow::timerEvent(QTimerEvent *ev)
         };
         */
         srvStatus = getServiceStatus();
-        /*
+
         switch ( srvStatus ) {
         case FAILED:
             if ( !reloadFlag )
@@ -138,7 +180,7 @@ void MainWindow::timerEvent(QTimerEvent *ev)
         default:
             break;
         };
-        */
+
     };
 }
 void MainWindow::directoryChanged(QString dir)
@@ -153,10 +195,8 @@ void MainWindow::directoryChanged(QString dir)
                     .arg("/dev/ttyUSB0")
                     .arg((deviceExist)? "":"dis");
             trayIcon->showMessage("WvDialer", msg);
-            if (deviceExist) {
-                reloadFlag = true;
-            };
-            killConnection();
+            reloadFlag = deviceExist;
+            stopWvDialProcess();
         };
     };
 }
@@ -172,7 +212,7 @@ void MainWindow::reloadConnection()
         //if ( PID>1 ) {
         srvStatus = getServiceStatus();
         if ( srvStatus==ACTIVE ) {
-            killConnection();
+            stopWvDialProcess();
         } else {
             startWvDialProcess();
         };
@@ -189,6 +229,11 @@ void MainWindow::reloadConnection()
     };
 }
 void MainWindow::killConnection()
+{
+    reloadFlag = false;
+    stopWvDialProcess();
+}
+void MainWindow::stopWvDialProcess()
 {
     // if PID>1, then kill wvdial session
     /*
@@ -302,10 +347,7 @@ void MainWindow::killConnection()
             trayIcon->setIcon(
                         QIcon::fromTheme("wvdialer_close",
                                          QIcon(":/wvdialer_close.png")));
-            //killTimer(timerID);
-            //timerID = 0;
         };
-        emit killed();
     } else {
         KNotification::event(
                     KNotification::Notification,
@@ -315,6 +357,7 @@ void MainWindow::killConnection()
                     this);
     };
     //trayIcon->setActionState(true);
+    emit killed();
 }
 void MainWindow::startWvDialProcess()
 {
@@ -339,6 +382,7 @@ void MainWindow::startWvDialProcess()
             act.setName("pro.russianfedora.wvdialer.start");
             break;
         default:
+            QTimer::singleShot(1000, this, SLOT(reloadConnection()));
             return;
         };
         //args["action"] = "run";
@@ -368,7 +412,6 @@ void MainWindow::startWvDialProcess()
             trayIcon->setIcon(
                         QIcon::fromTheme("wvdialer_open",
                                          QIcon(":/wvdialer_open.png")));
-            if ( timerID==0 ) timerID = startTimer(1000);
         } else {
             KNotification::event(
                         KNotification::Notification,
@@ -381,12 +424,13 @@ void MainWindow::startWvDialProcess()
                                          QIcon(":/wvdialer_close.png")));
         };
     };
+    if ( timerID==0 ) timerID = startTimer(1000);
     reloadFlag = false;
     //trayIcon->setActionState(true);
 }
 SRV_STATUS MainWindow::getServiceStatus()
 {
-    SRV_STATUS res = INACTIVE;
+    SRV_STATUS res = DEACTIVATING;
     QVariantMap args;
     args["action"] = "is-active";
     Action act("pro.russianfedora.wvdialer.status");

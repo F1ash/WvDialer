@@ -8,6 +8,7 @@
 #include <QCloseEvent>
 #include <QTimerEvent>
 #include <QSettings>
+#include <QtDBus/QDBusInterface>
 #include "tray/traywidget.h"
 #include <kauth.h>
 #include <knotification.h>
@@ -42,15 +43,22 @@ private:
     bool                getFileExistanceState(const QString, const QString) const;
     bool                getDirExistanceState(const QString, const QString) const;
 
+    QDBusInterface     *wvdialerUnit;
+    bool                connected;
+
 private slots:
     void                initTrayIcon();
     void                changeVisibility();
     void                trayIconActivated(QSystemTrayIcon::ActivationReason);
+    void                createWvDialerAccessor();
+    void                wvdialerUnitStatusReceiver(
+            const QString &, const QVariantMap &, const QStringList &);
     void                closeEvent(QCloseEvent*);
     void                timerEvent(QTimerEvent*);
     void                directoryChanged(QString);
     void                reloadConnection();
     void                killConnection();
+    void                stopWvDialProcess();
     void                startWvDialProcess();
     SRV_STATUS          getServiceStatus();
 };
