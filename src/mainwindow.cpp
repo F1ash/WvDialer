@@ -86,8 +86,7 @@ bool MainWindow::getDirExistanceState(const QString _dir1, const QString _dir2) 
 }
 void MainWindow::createWvDialerAccessor()
 {
-    //if ( nullptr!=wvdialerUnit ) return;
-    QDBusSignature sig("const QString&, const QVariantMap&, const QStringList&");
+    if ( connected ) return;
     /*
     wvdialerUnit = new QDBusInterface(
                 "org.freedesktop.systemd1",
@@ -107,20 +106,97 @@ void MainWindow::createWvDialerAccessor()
     */
     connected = QDBusConnection::systemBus()
             .connect(
-                "org.freedesktop.systemd1.Unit",
+                "org.freedesktop.systemd1",
                 "/org/freedesktop/systemd1/unit/wvdialer_2eservice",
                 "org.freedesktop.DBus.Properties",
                 "PropertiesChanged",
-                sig.signature(),
                 this,
-                "wvdialerUnitStatusReceiver");
-    if ( !connected )
+                SLOT(wvdialerUnitStatusReceiver(QDBusMessage)));
+    if ( !connected ) {
+        KNotification::event(
+                    KNotification::Notification,
+                    "WvDialer",
+                    "Not connected to org.freedesktop.systemd1",
+                    this);
         QTimer::singleShot(1000, this, SLOT(createWvDialerAccessor()));
+    } else {
+        KNotification::event(
+                    KNotification::Notification,
+                    "WvDialer",
+                    "Connected to org.freedesktop.systemd1",
+                    this);
+    };
 }
-void MainWindow::wvdialerUnitStatusReceiver(
-        const QString &s, const QVariantMap &v, const QStringList &l)
+void MainWindow::wvdialerUnitStatusReceiver(QDBusMessage message)
 {
-    qDebug()<<"new state"<<s<<v<<l;
+    QList<QVariant> args = message.arguments();
+    QString out = QLatin1String("Received ");
+    switch (message.type()) {
+    case QDBusMessage::SignalMessage:
+        out += QLatin1String("signal ");
+        break;
+    case QDBusMessage::ErrorMessage:
+        out += QLatin1String("error message ");
+        break;
+    case QDBusMessage::ReplyMessage:
+        out += QLatin1String("reply ");
+        break;
+    default:
+        out += QLatin1String("message ");
+        break;
+    };
+    out += QLatin1String("from ");
+    out += message.service();
+    if (!message.path().isEmpty())
+        out += QLatin1String(", path ") + message.path();
+    if (!message.interface().isEmpty())
+        out += QLatin1String(", interface <i>") + message.interface() + QLatin1String("</i>");
+    if (!message.member().isEmpty())
+        out += QLatin1String(", member ") + message.member();
+    out += QLatin1String("<br>");
+    if (args.isEmpty()) {
+        out += QLatin1String("<br><br>(no arguments)");
+    } else {
+        out += QLatin1String("<br><br>Arguments: ");
+        foreach (QVariant arg, args) {
+            switch ( arg.type() ) {
+            case QVariant::String :
+
+                break;
+            case QVariant::StringList :
+
+                break;
+            case QVariant::Map :
+
+                break;
+            case QVariant::Bool :
+
+                break;
+            case QVariant::ULongLong :
+
+                break;
+            case QVariant::UInt :
+
+                break;
+            case QVariant::Int :
+
+                break;
+            case QVariant::List :
+
+                break;
+            case QVariant::ByteArray :
+
+                break;
+            default:
+                break;
+            };
+        };
+    };
+    KNotification::event(
+                KNotification::Notification,
+                "WvDialer",
+                out,
+                this);
 }
 void MainWindow::closeEvent(QCloseEvent *ev)
 {
@@ -367,6 +443,7 @@ void MainWindow::startWvDialProcess()
     };
     // if device was connected, then run wvdial_helper
     if ( deviceExist ) {
+        createWvDialerAccessor();
         trayIcon->setIcon(
                     QIcon::fromTheme("wvdialer_reload",
                                      QIcon(":/wvdialer_reload.png")));

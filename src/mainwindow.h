@@ -51,8 +51,7 @@ private slots:
     void                changeVisibility();
     void                trayIconActivated(QSystemTrayIcon::ActivationReason);
     void                createWvDialerAccessor();
-    void                wvdialerUnitStatusReceiver(
-            const QString &, const QVariantMap &, const QStringList &);
+    void                wvdialerUnitStatusReceiver(QDBusMessage);
     void                closeEvent(QCloseEvent*);
     void                timerEvent(QTimerEvent*);
     void                directoryChanged(QString);
