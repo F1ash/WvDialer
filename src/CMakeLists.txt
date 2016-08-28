@@ -14,7 +14,11 @@ set(SOURCES
     tray/traywidget.cpp)
 
 find_package(Qt5 COMPONENTS Widgets DBus REQUIRED)
-include_directories(${Qt5Widgets_INCLUDE_DIRS} ${Qt5DBus_INCLUDE_DIRS})
+include_directories(
+    ${Qt5Widgets_INCLUDE_DIRS}
+    ${Qt5DBus_INCLUDE_DIRS}
+    ${Qt5DBus_PRIVATE_INCLUDE_DIRS})
+message("DBusPrivDirs: ${Qt5DBus_PRIVATE_INCLUDE_DIRS}")
 qt5_wrap_cpp(MOC_SOURCES ${HEADERS})
 qt5_add_resources(RCCs wvdialer_icons.qrc)
 set (
@@ -23,7 +27,9 @@ set (
     ${Qt5DBus_LIBRARIES}
     KF5::Auth
     KF5::Notifications)
-add_definitions(${Qt5Widgets_DEFINITIONS} ${Qt5DBus_DEFINITIONS})
+add_definitions(
+    ${Qt5Widgets_DEFINITIONS}
+    ${Qt5DBus_DEFINITIONS})
 
 add_executable(
     ${PROJECT_NAME}

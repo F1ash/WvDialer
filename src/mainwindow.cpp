@@ -1,11 +1,14 @@
 #include "mainwindow.h"
 #include <QDir>
 #include <QTimer>
+#include <private/qdbusutil_p.h>
+
 #define DEV_DIR  QString("/dev")
 #define PROC_DIR QString("/proc")
 
 MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent)
+    QMainWindow(parent),
+    objectPathRegExp(QLatin1String("\"ActiveState\" = \\[Variant(QString): \"*\"\\]"))
 {
     setSizePolicy(
                 QSizePolicy(
@@ -16,7 +19,7 @@ MainWindow::MainWindow(QWidget *parent) :
     setWindowIcon(QIcon::fromTheme("wvdialer", QIcon(":/wvdialer.png")));
     deviceExist = false;
     reloadFlag = false;
-    connected = false;
+    connected = false;;
     PID = -1;
     timerID = 0;
     srvStatus = INACTIVE;
@@ -130,6 +133,8 @@ void MainWindow::createWvDialerAccessor()
 void MainWindow::wvdialerUnitStatusReceiver(QDBusMessage message)
 {
     QList<QVariant> args = message.arguments();
+    if ( args.first().toString()!=
+         "org.freedesktop.systemd1.Unit" ) return;
     QString out = QLatin1String("Received ");
     switch (message.type()) {
     case QDBusMessage::SignalMessage:
@@ -148,54 +153,82 @@ void MainWindow::wvdialerUnitStatusReceiver(QDBusMessage message)
     out += QLatin1String("from ");
     out += message.service();
     if (!message.path().isEmpty())
-        out += QLatin1String(", path ") + message.path();
+        out += QLatin1String(", path ") +
+                message.path();
     if (!message.interface().isEmpty())
-        out += QLatin1String(", interface <i>") + message.interface() + QLatin1String("</i>");
+        out += QLatin1String(", interface <i>") +
+                message.interface() + QLatin1String("</i>");
     if (!message.member().isEmpty())
-        out += QLatin1String(", member ") + message.member();
+        out += QLatin1String(", member ") +
+                message.member();
     out += QLatin1String("<br>");
     if (args.isEmpty()) {
         out += QLatin1String("<br><br>(no arguments)");
     } else {
+        foreach (QVariant arg, args) {
+            QString str = QDBusUtil::argumentToString(arg).toHtmlEscaped();
+            // turn object paths into clickable links
+            str.replace(
+                        objectPathRegExp,
+                        QLatin1String(
+                            "[ObjectPath: <a href=\"qdbus://bus\\1\">\\1</a>]"));
+            // convert new lines from command to proper HTML line breaks
+            str.replace(QStringLiteral("\n"), QStringLiteral("<br/>"));
+            out += str;
+            out += QLatin1String(", ");
+        }
+        out.chop(2);
+        /*
         out += QLatin1String("<br><br>Arguments: ");
         foreach (QVariant arg, args) {
+            QMap<QString, QVariant> m;
+            QList<QVariant> l;
             switch ( arg.type() ) {
             case QVariant::String :
-
+                out += arg.toString() + " ";
                 break;
             case QVariant::StringList :
-
+                foreach (QString s, arg.toStringList()) {
+                    out += s + " ";
+                };
                 break;
             case QVariant::Map :
-
+                m = arg.toMap();
+                foreach (QString key, m.keys()) {
+                    out += m.value(key).toString() + " ";
+                };
                 break;
             case QVariant::Bool :
-
+                out += arg.toString() + " ";
                 break;
             case QVariant::ULongLong :
-
+                out += arg.toString() + " ";
                 break;
             case QVariant::UInt :
-
+                out += arg.toString() + " ";
                 break;
             case QVariant::Int :
-
+                out += arg.toString() + " ";
                 break;
             case QVariant::List :
-
+                l = arg.toList();
+                foreach (QVariant v, l) {
+                    out += v.toString() + " ";
+                };
                 break;
             case QVariant::ByteArray :
-
+                out += arg.toByteArray().data();
                 break;
             default:
                 break;
             };
         };
+        */
     };
     KNotification::event(
                 KNotification::Notification,
                 "WvDialer",
-                out,
+                message.signature(),
                 this);
 }
 void MainWindow::closeEvent(QCloseEvent *ev)

@@ -45,6 +45,7 @@ private:
 
     QDBusInterface     *wvdialerUnit;
     bool                connected;
+    QRegExp             objectPathRegExp;
 
 private slots:
     void                initTrayIcon();
