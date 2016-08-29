@@ -1,11 +1,11 @@
 #include <kauth.h>
 using namespace KAuth;
 
-class WvDialHelper : public QObject
+class WvDialerHelper : public QObject
 {
     Q_OBJECT
 public:
-    explicit WvDialHelper(QObject *parent = nullptr);
+    explicit WvDialerHelper(QObject *parent = nullptr);
 
 public slots:
     ActionReply     run(const QVariantMap args) const;

@@ -6,9 +6,9 @@
 #include <QScrollArea>
 #include <QVBoxLayout>
 #include <QCloseEvent>
-#include <QTimerEvent>
 #include <QSettings>
-#include <QtDBus/QDBusInterface>
+#include <QtDBus/QDBusConnection>
+#include <QtDBus/QDBusMessage>
 #include "tray/traywidget.h"
 #include <kauth.h>
 #include <knotification.h>
@@ -27,12 +27,8 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = nullptr);
 
-signals:
-    void                killed();
-
 private:
-    bool                deviceExist, reloadFlag;
-    int                 PID, timerID;
+    bool                deviceExist, startFlag;
     SRV_STATUS          srvStatus;
     QFileSystemWatcher *watcher;
     TrayIcon           *trayIcon;
@@ -40,27 +36,25 @@ private:
     QWidget            *baseWdg;
     QScrollArea        *scrolled;
     QSettings           settings;
-    bool                getFileExistanceState(const QString, const QString) const;
-    bool                getDirExistanceState(const QString, const QString) const;
+    QDBusConnection     connection;
 
-    QDBusInterface     *wvdialerUnit;
-    bool                connected;
-    QRegExp             objectPathRegExp;
+    void                initTrayIcon();
+    bool                getFileExistanceState(const QString, const QString) const;
+    void                connectToWvDialerService();
+    bool                checkServiceStatus();
+    void                serviceStatusChanged();
+    void                startWvDialProcess();
+    void                stopWvDialProcess();
 
 private slots:
-    void                initTrayIcon();
     void                changeVisibility();
     void                trayIconActivated(QSystemTrayIcon::ActivationReason);
-    void                createWvDialerAccessor();
-    void                wvdialerUnitStatusReceiver(QDBusMessage);
+    void                servicePropertyChanged(QDBusMessage);
     void                closeEvent(QCloseEvent*);
-    void                timerEvent(QTimerEvent*);
     void                directoryChanged(QString);
-    void                reloadConnection();
-    void                killConnection();
-    void                stopWvDialProcess();
-    void                startWvDialProcess();
-    SRV_STATUS          getServiceStatus();
+    void                startConnection();
+    void                stopConnection();
+    void                receiveServiceStatus(QDBusMessage);
 };
 
 #endif // MAINWINDOW_H

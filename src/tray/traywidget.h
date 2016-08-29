@@ -13,10 +13,9 @@ public :
   explicit TrayIcon(QWidget *parent = nullptr);
 
   QAction   *hideAction;
-  QAction   *reloadAction;
-  QAction   *killAction;
+  QAction   *startAction;
+  QAction   *stopAction;
   QAction   *closeAction;
-  void       setActionState(bool);
 
 private :
   QMenu     *trayIconMenu;

@@ -1,15 +1,17 @@
 #include <QProcess>
 #include "wvdialer_helper.h"
 #include <signal.h>
+#include <QtDBus/QDBusConnection>
+#include <QtDBus/QDBusMessage>
 
 #define WVDIALER QString("wvdialer")
 
-WvDialHelper::WvDialHelper(QObject *parent) :
+WvDialerHelper::WvDialerHelper(QObject *parent) :
     QObject(parent)
 {
 }
 
-QString WvDialHelper::get_key_varmap(const QVariantMap &args, const QString& key) const
+QString WvDialerHelper::get_key_varmap(const QVariantMap &args, const QString& key) const
 {
     QString value;
     if (args.keys().contains(key)) {
@@ -20,7 +22,7 @@ QString WvDialHelper::get_key_varmap(const QVariantMap &args, const QString& key
     return value;
 }
 
-ActionReply WvDialHelper::run(const QVariantMap args) const
+ActionReply WvDialerHelper::run(const QVariantMap args) const
 {
     ActionReply reply;
  
@@ -47,7 +49,7 @@ ActionReply WvDialHelper::run(const QVariantMap args) const
     return reply;
 }
 
-ActionReply WvDialHelper::kill(const QVariantMap args) const
+ActionReply WvDialerHelper::kill(const QVariantMap args) const
 {
     ActionReply reply;
 
@@ -80,8 +82,11 @@ ActionReply WvDialHelper::kill(const QVariantMap args) const
     return reply;
 }
 
-ActionReply WvDialHelper::create(const QVariantMap args) const
+ActionReply WvDialerHelper::create(const QVariantMap args) const
 {
+    // Unable to find method StartTransientUnit
+    // on path /org/freedesktop/systemd1 in interface
+    // org.freedesktop.systemd1.Manager
     ActionReply reply;
 
     const QString act = get_key_varmap(args, "action");
@@ -111,7 +116,7 @@ ActionReply WvDialHelper::create(const QVariantMap args) const
     return reply;
 }
 
-ActionReply WvDialHelper::start(const QVariantMap args) const
+ActionReply WvDialerHelper::start(const QVariantMap args) const
 {
     ActionReply reply;
 
@@ -124,6 +129,7 @@ ActionReply WvDialHelper::start(const QVariantMap args) const
     };
 
     QVariantMap retdata;
+    /*
     QProcess proc;
     proc.setProgram("/usr/bin/systemctl");
     proc.setArguments(QStringList()<<act<<WVDIALER);
@@ -133,12 +139,33 @@ ActionReply WvDialHelper::start(const QVariantMap args) const
     } else {
         retdata["code"]     = QString::number(-1);
     };
+    */
+
+    QDBusMessage msg = QDBusMessage::createMethodCall(
+                "org.freedesktop.systemd1",
+                "/org/freedesktop/systemd1",
+                "org.freedesktop.systemd1.Manager",
+                "StartUnit");
+    QList<QVariant> _args;
+    _args<<QString("%1.service").arg(WVDIALER)<<"fail";
+    msg.setArguments(_args);
+    QDBusMessage res = QDBusConnection::systemBus()
+            .call(msg, QDBus::Block);
+    switch (res.type()) {
+    case QDBusMessage::ReplyMessage:
+        retdata["code"]     = QString::number(0);
+        break;
+    default:
+        retdata["code"]     = QString::number(1);
+        break;
+    };
 
     reply.setData(retdata);
     return reply;
 }
 
-ActionReply WvDialHelper::status(const QVariantMap args) const
+// Unused method
+ActionReply WvDialerHelper::status(const QVariantMap args) const
 {
     ActionReply reply;
 
@@ -174,7 +201,7 @@ ActionReply WvDialHelper::status(const QVariantMap args) const
     return reply;
 }
 
-ActionReply WvDialHelper::stop(const QVariantMap args) const
+ActionReply WvDialerHelper::stop(const QVariantMap args) const
 {
     ActionReply reply;
 
@@ -187,6 +214,7 @@ ActionReply WvDialHelper::stop(const QVariantMap args) const
     };
 
     QVariantMap retdata;
+    /*
     QProcess proc;
     proc.setProgram("/usr/bin/systemctl");
     proc.setArguments(QStringList()<<act<<WVDIALER);
@@ -196,9 +224,29 @@ ActionReply WvDialHelper::stop(const QVariantMap args) const
     } else {
         retdata["code"]     = QString::number(-1);
     };
+    */
+
+    QDBusMessage msg = QDBusMessage::createMethodCall(
+                "org.freedesktop.systemd1",
+                "/org/freedesktop/systemd1",
+                "org.freedesktop.systemd1.Manager",
+                "StopUnit");
+    QList<QVariant> _args;
+    _args<<QString("%1.service").arg(WVDIALER)<<"fail";
+    msg.setArguments(_args);
+    QDBusMessage res = QDBusConnection::systemBus()
+            .call(msg, QDBus::Block);
+    switch (res.type()) {
+    case QDBusMessage::ReplyMessage:
+        retdata["code"]     = QString::number(0);
+        break;
+    default:
+        retdata["code"]     = QString::number(1);
+        break;
+    };
 
     reply.setData(retdata);
     return reply;
 }
 
-KAUTH_HELPER_MAIN("pro.russianfedora.wvdialer", WvDialHelper)
+KAUTH_HELPER_MAIN("pro.russianfedora.wvdialer", WvDialerHelper)

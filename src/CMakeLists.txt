@@ -18,7 +18,7 @@ include_directories(
     ${Qt5Widgets_INCLUDE_DIRS}
     ${Qt5DBus_INCLUDE_DIRS}
     ${Qt5DBus_PRIVATE_INCLUDE_DIRS})
-message("DBusPrivDirs: ${Qt5DBus_PRIVATE_INCLUDE_DIRS}")
+#message("DBusPrivDirs: ${Qt5DBus_PRIVATE_INCLUDE_DIRS}")
 qt5_wrap_cpp(MOC_SOURCES ${HEADERS})
 qt5_add_resources(RCCs wvdialer_icons.qrc)
 set (
