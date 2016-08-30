@@ -3,8 +3,14 @@
 #include <signal.h>
 #include <QtDBus/QDBusConnection>
 #include <QtDBus/QDBusMessage>
+#include <private/qdbusmetatype_p.h>
+#include <private/qdbusutil_p.h>
 
 #define WVDIALER QString("wvdialer")
+typedef QPair<QString, QString>       PrimitivePair;
+typedef QList<PrimitivePair>          SrvParameters;
+typedef QPair<QString, SrvParameters> ComplexPair;
+typedef QList<ComplexPair>            AuxParameters;
 
 WvDialerHelper::WvDialerHelper(QObject *parent) :
     QObject(parent)
@@ -82,11 +88,26 @@ ActionReply WvDialerHelper::kill(const QVariantMap args) const
     return reply;
 }
 
+QDBusArgument &operator<<(QDBusArgument &argument, const SrvParameters &arr)
+{
+    argument.beginArray( qMetaTypeId<SrvParameters>() );
+    for ( int i = 0; i < arr.length(); ++i )
+        argument << arr.at(i);
+    argument.endArray();
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const AuxParameters &arr)
+{
+    argument.beginArray( qMetaTypeId<AuxParameters>() );
+    for ( int i = 0; i < arr.length(); ++i )
+        argument << arr.at(i);
+    argument.endArray();
+    return argument;
+}
+
 ActionReply WvDialerHelper::create(const QVariantMap args) const
 {
-    // Unable to find method StartTransientUnit
-    // on path /org/freedesktop/systemd1 in interface
-    // org.freedesktop.systemd1.Manager
     ActionReply reply;
 
     const QString act = get_key_varmap(args, "action");
@@ -111,6 +132,47 @@ ActionReply WvDialerHelper::create(const QVariantMap args) const
     } else {
         retdata["code"]     = QString::number(-1);
     };
+
+    /*
+    qRegisterMetaType<PrimitivePair>("PrimitivePair");
+    //qDBusRegisterMetaType<PrimitivePair>();
+    qRegisterMetaType<SrvParameters>("SrvParameters");
+    qDBusRegisterMetaType<SrvParameters>();
+    qRegisterMetaType<ComplexPair>("ComplexPair");
+    //qDBusRegisterMetaType<ComplexPair>();
+    qRegisterMetaType<AuxParameters>("AuxParameters");
+    qDBusRegisterMetaType<AuxParameters>();
+    QDBusMessage msg = QDBusMessage::createMethodCall(
+                "org.freedesktop.systemd1",
+                "/org/freedesktop/systemd1",
+                "org.freedesktop.systemd1.Manager",
+                "StartTransientUnit");
+    // Expecting 'ssa(sv)a(sa(sv))'
+    QVariantList  _args;
+    SrvParameters _props;
+    AuxParameters _aux;
+    PrimitivePair srvType = PrimitivePair("Type", "simple");
+    _props<<srvType;
+    _args<<QString("%1.service").arg(WVDIALER)<<"fail"
+        <<qVariantFromValue(_props)<<qVariantFromValue(_aux);
+    msg.setArguments(_args);
+    QDBusMessage res = QDBusConnection::systemBus()
+            .call(msg, QDBus::Block);
+    QString str;
+    foreach (QVariant arg, res.arguments()) {
+        str.append(QDBusUtil::argumentToString(arg));
+        str.append("\n");
+    };
+    retdata["msg"]          = str;
+    switch (res.type()) {
+    case QDBusMessage::ReplyMessage:
+        retdata["code"]     = QString::number(0);
+        break;
+    default:
+        retdata["code"]     = QString::number(1);
+        break;
+    };
+    */
 
     reply.setData(retdata);
     return reply;
@@ -151,6 +213,12 @@ ActionReply WvDialerHelper::start(const QVariantMap args) const
     msg.setArguments(_args);
     QDBusMessage res = QDBusConnection::systemBus()
             .call(msg, QDBus::Block);
+    QString str;
+    foreach (QVariant arg, res.arguments()) {
+        str.append(QDBusUtil::argumentToString(arg));
+        str.append("\n");
+    };
+    retdata["msg"]          = str;
     switch (res.type()) {
     case QDBusMessage::ReplyMessage:
         retdata["code"]     = QString::number(0);
@@ -236,6 +304,12 @@ ActionReply WvDialerHelper::stop(const QVariantMap args) const
     msg.setArguments(_args);
     QDBusMessage res = QDBusConnection::systemBus()
             .call(msg, QDBus::Block);
+    QString str;
+    foreach (QVariant arg, res.arguments()) {
+        str.append(QDBusUtil::argumentToString(arg));
+        str.append("\n");
+    };
+    retdata["msg"]          = str;
     switch (res.type()) {
     case QDBusMessage::ReplyMessage:
         retdata["code"]     = QString::number(0);

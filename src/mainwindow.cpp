@@ -158,7 +158,26 @@ void MainWindow::stopWvDialProcess()
     act.setArguments(args);
     ExecuteJob *job = act.execute();
     job->setAutoDelete(true);
-    job->exec();
+    if (job->exec()) {
+        QString code = job->data().value("code").toString();
+        QString msg  = job->data().value("msg").toString();
+        KNotification::event(
+                   KNotification::Notification,
+                   "WvDialer",
+                   QString("Wvdial session closed with exit code: %1\n%2")
+                   .arg(code).arg(msg),
+                   this);
+    } else {
+        KNotification::event(
+                   KNotification::Notification,
+                   "WvDialer",
+                   QString("ERROR: %1\n%2")
+                   .arg(job->error()).arg(job->errorText()),
+                   this);
+        trayIcon->setIcon(
+                    QIcon::fromTheme("wvdialer_close",
+                                     QIcon(":/wvdialer_close.png")));
+    };
 }
 void MainWindow::startWvDialProcess()
 {
@@ -186,7 +205,31 @@ void MainWindow::startWvDialProcess()
         act.setArguments(args);
         ExecuteJob *job = act.execute();
         job->setAutoDelete(true);
-        job->exec();
+        if (job->exec()) {
+            QString code = job->data().value("code").toString();
+            QString msg  = job->data().value("msg").toString();
+            KNotification::event(
+                       KNotification::Notification,
+                       "WvDialer",
+                       QString("Wvdial session open with exit code: %1\n%2")
+                       .arg(code).arg(msg),
+                       this);
+            if ( code.toInt()==1 && counter<3 ) {
+                counter++;
+                srvStatus = INACTIVE;
+                startWvDialProcess();
+            };
+        } else {
+            KNotification::event(
+                       KNotification::Notification,
+                       "WvDialer",
+                       QString("ERROR: %1\n%2")
+                       .arg(job->error()).arg(job->errorText()),
+                       this);
+            trayIcon->setIcon(
+                        QIcon::fromTheme("wvdialer_close",
+                                         QIcon(":/wvdialer_close.png")));
+        };
     };
 }
 bool MainWindow::checkServiceStatus()
@@ -223,6 +266,8 @@ void MainWindow::receiveServiceStatus(QDBusMessage _msg)
         srvStatus = ACTIVE;
     } else if ( status=="failed" ) {
         srvStatus = FAILED;
+    } else if ( status=="activating" ) {
+        srvStatus = ACTIVATING;
     } else if ( status=="deactivating" ) {
         srvStatus = DEACTIVATING;
     } else {
@@ -257,6 +302,7 @@ void MainWindow::serviceStatusChanged()
         startFlag = false;
         break;
     case DEACTIVATING:
+    case   ACTIVATING:
         trayIcon->setIcon(
                     QIcon::fromTheme("wvdialer_reload",
                                      QIcon(":/wvdialer_reload.png")));

@@ -18,6 +18,7 @@ enum SRV_STATUS {
     INACTIVE = -1,
     ACTIVE,
     FAILED,
+    ACTIVATING,
     DEACTIVATING
 };
 
@@ -28,6 +29,7 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
 
 private:
+    int                 counter = 0;
     bool                deviceExist, startFlag;
     SRV_STATUS          srvStatus;
     QFileSystemWatcher *watcher;

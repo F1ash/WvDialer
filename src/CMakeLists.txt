@@ -3,8 +3,6 @@ find_package(ECM REQUIRED NO_MODULE)
 set(CMAKE_MODULE_PATH ${ECM_MODULE_DIR} ${ECM_KDE_MODULE_DIR})
 include(KDEInstallDirs)
 
-add_subdirectory(helper)
-
 set(HEADERS
     mainwindow.h
     tray/traywidget.h)
@@ -44,3 +42,5 @@ install ( TARGETS     ${PROJECT_NAME}
 #message("KNOTIFYRC_INSTALL_DIR: ${KNOTIFYRC_INSTALL_DIR}")
 install(  FILES       ${PROJECT_NAME}.notifyrc
           DESTINATION ${KNOTIFYRC_INSTALL_DIR})
+
+add_subdirectory(helper)
