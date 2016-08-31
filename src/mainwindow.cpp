@@ -161,11 +161,12 @@ void MainWindow::stopWvDialProcess()
     if (job->exec()) {
         QString code = job->data().value("code").toString();
         QString msg  = job->data().value("msg").toString();
+        QString err  = job->data().value("err").toString();
         KNotification::event(
                    KNotification::Notification,
                    "WvDialer",
-                   QString("Wvdial session closed with exit code: %1\n%2")
-                   .arg(code).arg(msg),
+                   QString("Wvdial session closed with exit code: %1\n%2\n%3")
+                   .arg(code).arg(msg).arg(err),
                    this);
     } else {
         KNotification::event(
@@ -208,11 +209,13 @@ void MainWindow::startWvDialProcess()
         if (job->exec()) {
             QString code = job->data().value("code").toString();
             QString msg  = job->data().value("msg").toString();
+            QString sig  = job->data().value("signature").toString();
+            QString err  = job->data().value("err").toString();
             KNotification::event(
                        KNotification::Notification,
                        "WvDialer",
-                       QString("Wvdial session open with exit code: %1\n%2")
-                       .arg(code).arg(msg),
+                       QString("Wvdial session open with exit code: %1\n%2\n%3\n%4")
+                       .arg(code).arg(msg).arg(sig).arg(err),
                        this);
             if ( code.toInt()==1 && counter<3 ) {
                 counter++;

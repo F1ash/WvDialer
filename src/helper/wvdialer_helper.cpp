@@ -1,16 +1,29 @@
 #include <QProcess>
 #include "wvdialer_helper.h"
-#include <signal.h>
 #include <QtDBus/QDBusConnection>
 #include <QtDBus/QDBusMessage>
 #include <private/qdbusmetatype_p.h>
 #include <private/qdbusutil_p.h>
 
 #define WVDIALER QString("wvdialer")
-typedef QPair<QString, QString>       PrimitivePair;
-typedef QList<PrimitivePair>          SrvParameters;
-typedef QPair<QString, SrvParameters> ComplexPair;
-typedef QList<ComplexPair>            AuxParameters;
+
+struct PrimitivePair
+{
+    QString         name;
+    QVariant        value;
+};
+Q_DECLARE_METATYPE(PrimitivePair)
+typedef QList<PrimitivePair>    SrvParameters;
+Q_DECLARE_METATYPE(SrvParameters)
+
+struct ComplexPair
+{
+    QString         name;
+    SrvParameters   value;
+};
+Q_DECLARE_METATYPE(ComplexPair)
+typedef QList<ComplexPair>      AuxParameters;
+Q_DECLARE_METATYPE(AuxParameters)
 
 WvDialerHelper::WvDialerHelper(QObject *parent) :
     QObject(parent)
@@ -28,80 +41,74 @@ QString WvDialerHelper::get_key_varmap(const QVariantMap &args, const QString& k
     return value;
 }
 
-ActionReply WvDialerHelper::run(const QVariantMap args) const
+QDBusArgument &operator<<(QDBusArgument &argument, const PrimitivePair &pair)
 {
-    ActionReply reply;
- 
-    const QString act = get_key_varmap(args, "action");
-    if ( act!="run" ) {
-        QVariantMap err;
-        err["result"] = QString::number(-1);
-        reply.setData(err);
-        return reply;
-    };
- 
-    qint64 pid;
-    bool started = QProcess::startDetached(
-                "/usr/bin/wvdial",
-                QStringList(),
-                "",
-                &pid);
- 
-    QVariantMap retdata;
-    retdata["result"] = (started)? "ok":"fail";
-    retdata["PID"]    = QString::number(pid);
- 
-    reply.setData(retdata);
-    return reply;
+    argument.beginStructure();
+    argument << pair.name << QDBusVariant(pair.value);
+    argument.endStructure();
+    return argument;
 }
-
-ActionReply WvDialerHelper::kill(const QVariantMap args) const
+const QDBusArgument &operator>>(const QDBusArgument &argument, PrimitivePair &pair)
 {
-    ActionReply reply;
-
-    const QString act = get_key_varmap(args, "action");
-    if ( act!="kill" ) {
-        QVariantMap err;
-        err["result"] = QString::number(-1);
-        reply.setData(err);
-        return reply;
-    };
-
-    QString pid = get_key_varmap(args, "PID");
-    bool ok;
-    int _pid = pid.toInt(&ok);
-    //int code = QProcess::execute(
-    //            "/usr/bin/kill",
-    //            QStringList()<<"-2"<<pid);
-    if ( !ok ) {
-        QVariantMap err;
-        err["result"] = QString::number(-1);
-        reply.setData(err);
-        return reply;
-    };
-    int code = ::kill(_pid, SIGKILL);
-
-    QVariantMap retdata;
-    retdata["code"] = QString::number(code);
-
-    reply.setData(retdata);
-    return reply;
+    argument.beginStructure();
+    argument >> pair.name >> pair.value;
+    argument.endStructure();
+    return argument;
 }
 
 QDBusArgument &operator<<(QDBusArgument &argument, const SrvParameters &arr)
 {
-    argument.beginArray( qMetaTypeId<SrvParameters>() );
+    argument.beginArray( qMetaTypeId<PrimitivePair>() );
     for ( int i = 0; i < arr.length(); ++i )
         argument << arr.at(i);
     argument.endArray();
     return argument;
 }
+const QDBusArgument &operator>>(const QDBusArgument &argument, SrvParameters &arr)
+{
+    argument.beginArray();
+    arr.clear();
+    while (!argument.atEnd()) {
+        SrvParameters item;
+        argument >> item;
+        arr.append(item);
+    };
+    argument.endArray();
+    return argument;
+}
+
+QDBusArgument &operator<<(QDBusArgument &argument, const ComplexPair &pair)
+{
+    argument.beginStructure();
+    argument << pair.name << pair.value;
+    argument.endStructure();
+    return argument;
+}
+const QDBusArgument &operator>>(const QDBusArgument &argument, ComplexPair &pair)
+{
+    argument.beginStructure();
+    argument >> pair.name >> pair.value;
+    argument.endStructure();
+    return argument;
+}
 
 QDBusArgument &operator<<(QDBusArgument &argument, const AuxParameters &arr)
 {
-    argument.beginArray( qMetaTypeId<AuxParameters>() );
+    argument.beginArray( qMetaTypeId<ComplexPair>() );
     for ( int i = 0; i < arr.length(); ++i )
         argument << arr.at(i);
+    argument.endArray();
+    return argument;
+}
+const QDBusArgument &operator>>(const QDBusArgument &argument, AuxParameters &arr)
+{
+    argument.beginArray();
+    arr.clear();
+    while (!argument.atEnd()) {
+        ComplexPair item;
+        argument >> item;
+        arr.append(item);
+    };
     argument.endArray();
     return argument;
 }
@@ -120,6 +127,8 @@ ActionReply WvDialerHelper::create(const QVariantMap args) const
 
     QVariantMap retdata;
     // Start new transient service unit: wvdialer.service
+
+    /*
     QProcess proc;
     proc.setProgram("/usr/bin/systemd-run");
     proc.setArguments(QStringList()
@@ -132,16 +141,13 @@ ActionReply WvDialerHelper::create(const QVariantMap args) const
     } else {
         retdata["code"]     = QString::number(-1);
     };
+    */
 
-    /*
-    qRegisterMetaType<PrimitivePair>("PrimitivePair");
-    //qDBusRegisterMetaType<PrimitivePair>();
-    qRegisterMetaType<SrvParameters>("SrvParameters");
+    qDBusRegisterMetaType<PrimitivePair>();
     qDBusRegisterMetaType<SrvParameters>();
-    qRegisterMetaType<ComplexPair>("ComplexPair");
-    //qDBusRegisterMetaType<ComplexPair>();
-    qRegisterMetaType<AuxParameters>("AuxParameters");
+    qDBusRegisterMetaType<ComplexPair>();
     qDBusRegisterMetaType<AuxParameters>();
+
     QDBusMessage msg = QDBusMessage::createMethodCall(
                 "org.freedesktop.systemd1",
                 "/org/freedesktop/systemd1",
@@ -149,13 +155,35 @@ ActionReply WvDialerHelper::create(const QVariantMap args) const
                 "StartTransientUnit");
     // Expecting 'ssa(sv)a(sa(sv))'
     QVariantList  _args;
+
     SrvParameters _props;
+    PrimitivePair srvType, execStart, execStop;
+    srvType.name = "Type";
+    srvType.value = "simple";
+    execStart.name = "ExecStart";
+    execStart.value = QVariant("@/usr/bin/wvdial \"/usr/bin/wvdial\"");
+    execStop.name = "ExecStop";
+    execStop.value = QVariant("/bin/kill -INT ${MAINPID}");
+    _props.append(srvType);
+    _props.append(execStart);
+    _props.append(execStop);
+
     AuxParameters _aux;
-    PrimitivePair srvType = PrimitivePair("Type", "simple");
-    _props<<srvType;
-    _args<<QString("%1.service").arg(WVDIALER)<<"fail"
-        <<qVariantFromValue(_props)<<qVariantFromValue(_aux);
+    // aux is currently unused and should be passed as empty array.
+    // ComplexPair   srvAuxData;
+    //_aux.append(srvAuxData);
+
+    //QDBusArgument PROPS, AUX;
+    //PROPS<<_props;
+    //AUX<<_aux;
+
+    _args
+        << QString("%1.service").arg(WVDIALER)
+        << "replace"
+        << QVariant::fromValue(_props)   //PROPS.asVariant()
+        << QVariant::fromValue(_aux);     //AUX.asVariant();
     msg.setArguments(_args);
+    QString sig = msg.signature();
     QDBusMessage res = QDBusConnection::systemBus()
             .call(msg, QDBus::Block);
     QString str;
@@ -164,15 +192,19 @@ ActionReply WvDialerHelper::create(const QVariantMap args) const
         str.append("\n");
     };
     retdata["msg"]          = str;
+    retdata["signature"]    = sig;
     switch (res.type()) {
     case QDBusMessage::ReplyMessage:
         retdata["code"]     = QString::number(0);
+        break;
+    case QDBusMessage::ErrorMessage:
+        retdata["code"]     = QString::number(1);
+        retdata["err"]      = res.errorMessage();
         break;
     default:
         retdata["code"]     = QString::number(1);
         break;
     };
-    */
 
     reply.setData(retdata);
     return reply;
@@ -191,18 +223,6 @@ ActionReply WvDialerHelper::start(const QVariantMap args) const
     };
 
     QVariantMap retdata;
-    /*
-    QProcess proc;
-    proc.setProgram("/usr/bin/systemctl");
-    proc.setArguments(QStringList()<<act<<WVDIALER);
-    proc.start(QIODevice::ReadOnly);
-    if ( proc.waitForStarted() && proc.waitForFinished() ) {
-        retdata["code"]     = QString::number(proc.exitCode());
-    } else {
-        retdata["code"]     = QString::number(-1);
-    };
-    */
-
     QDBusMessage msg = QDBusMessage::createMethodCall(
                 "org.freedesktop.systemd1",
                 "/org/freedesktop/systemd1",
@@ -223,46 +243,13 @@ ActionReply WvDialerHelper::start(const QVariantMap args) const
     case QDBusMessage::ReplyMessage:
         retdata["code"]     = QString::number(0);
         break;
+    case QDBusMessage::ErrorMessage:
+        retdata["code"]     = QString::number(1);
+        retdata["err"]      = res.errorMessage();
+        break;
     default:
         retdata["code"]     = QString::number(1);
         break;
-    };
-
-    reply.setData(retdata);
-    return reply;
-}
-
-// Unused method
-ActionReply WvDialerHelper::status(const QVariantMap args) const
-{
-    ActionReply reply;
-
-    const QString act = get_key_varmap(args, "action");
-    if ( act!="is-active" ) {
-        QVariantMap err;
-        err["result"] = QString::number(-1);
-        reply.setData(err);
-        return reply;
-    };
-
-    QVariantMap retdata;
-    QByteArray result;
-    QProcess proc;
-    proc.setProgram("/usr/bin/systemctl");
-    proc.setArguments(QStringList()<<act<<WVDIALER);
-    proc.start(QIODevice::ReadOnly);
-    if ( proc.waitForStarted() && proc.waitForFinished() ) {
-        // 'inactive'       -- service not exist
-        // 'active'         -- service exist and running
-        // 'failed'         -- service exist and stopped
-        // 'deactivating'   -- service exist and deactivating
-        result = proc.readAll();
-        retdata["result"]   = QString::fromUtf8(
-                    result.data(), result.size()-1);
-        retdata["code"]     = QString::number(proc.exitCode());
-    } else {
-        retdata["result"]   = "failed";
-        retdata["code"]     = QString::number(-1);
     };
 
     reply.setData(retdata);
@@ -282,18 +269,6 @@ ActionReply WvDialerHelper::stop(const QVariantMap args) const
     };
 
     QVariantMap retdata;
-    /*
-    QProcess proc;
-    proc.setProgram("/usr/bin/systemctl");
-    proc.setArguments(QStringList()<<act<<WVDIALER);
-    proc.start(QIODevice::ReadOnly);
-    if ( proc.waitForStarted() && proc.waitForFinished() ) {
-        retdata["code"]     = QString::number(proc.exitCode());
-    } else {
-        retdata["code"]     = QString::number(-1);
-    };
-    */
-
     QDBusMessage msg = QDBusMessage::createMethodCall(
                 "org.freedesktop.systemd1",
                 "/org/freedesktop/systemd1",
@@ -313,6 +288,10 @@ ActionReply WvDialerHelper::stop(const QVariantMap args) const
     switch (res.type()) {
     case QDBusMessage::ReplyMessage:
         retdata["code"]     = QString::number(0);
+        break;
+    case QDBusMessage::ErrorMessage:
+        retdata["code"]     = QString::number(1);
+        retdata["err"]      = res.errorMessage();
         break;
     default:
         retdata["code"]     = QString::number(1);
