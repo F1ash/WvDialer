@@ -1,4 +1,4 @@
 [Global]
-IconName=wvdialer
+IconName=WvDialer
 Comment=Qt wrapper for wvdial
 Name=WvDialer

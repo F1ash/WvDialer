@@ -1,11 +1,11 @@
-#include <QProcess>
+//#include <QProcess>
 #include "wvdialer_helper.h"
 #include <QtDBus/QDBusConnection>
 #include <QtDBus/QDBusMessage>
 #include <private/qdbusmetatype_p.h>
 #include <private/qdbusutil_p.h>
 
-#define WVDIALER QString("wvdialer")
+#define WVDIALER QString("WvDialer")
 
 struct PrimitivePair
 {
@@ -56,27 +56,6 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, PrimitivePair &pa
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const SrvParameters &arr)
-{
-    argument.beginArray( qMetaTypeId<PrimitivePair>() );
-    for ( int i = 0; i < arr.length(); ++i )
-        argument << arr.at(i);
-    argument.endArray();
-    return argument;
-}
-const QDBusArgument &operator>>(const QDBusArgument &argument, SrvParameters &arr)
-{
-    argument.beginArray();
-    arr.clear();
-    while (!argument.atEnd()) {
-        SrvParameters item;
-        argument >> item;
-        arr.append(item);
-    };
-    argument.endArray();
-    return argument;
-}
-
 QDBusArgument &operator<<(QDBusArgument &argument, const ComplexPair &pair)
 {
     argument.beginStructure();
@@ -92,27 +71,21 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, ComplexPair &pair
     return argument;
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument, const AuxParameters &arr)
-{
-    argument.beginArray( qMetaTypeId<ComplexPair>() );
-    for ( int i = 0; i < arr.length(); ++i )
-        argument << arr.at(i);
-    argument.endArray();
-    return argument;
-}
-const QDBusArgument &operator>>(const QDBusArgument &argument, AuxParameters &arr)
+QVariantList &operator<<(QVariantList &list, const QDBusArgument &argument)
 {
     argument.beginArray();
-    arr.clear();
     while (!argument.atEnd()) {
-        ComplexPair item;
+        QDBusVariant item;
         argument >> item;
-        arr.append(item);
-    };
+        list.append(item.variant());
+    }
     argument.endArray();
-    return argument;
+
+    return list;
 }
 
+// Not implemented;
+// used persistent wvdialer.service systemd unit
 ActionReply WvDialerHelper::create(const QVariantMap args) const
 {
     ActionReply reply;
@@ -158,12 +131,12 @@ ActionReply WvDialerHelper::create(const QVariantMap args) const
 
     SrvParameters _props;
     PrimitivePair srvType, execStart, execStop;
-    srvType.name = "Type";
-    srvType.value = "simple";
-    execStart.name = "ExecStart";
-    execStart.value = QVariant("@/usr/bin/wvdial \"/usr/bin/wvdial\"");
-    execStop.name = "ExecStop";
-    execStop.value = QVariant("/bin/kill -INT ${MAINPID}");
+    srvType.name    = "Type";
+    srvType.value   = "simple";
+    execStart.name  = "ExecStart";
+    execStart.value = QLatin1String("/usr/bin/wvdial");
+    execStop.name   = "ExecStop";
+    execStop.value  = QLatin1String("/bin/kill -INT ${MAINPID}");
     _props.append(srvType);
     _props.append(execStart);
     _props.append(execStop);
@@ -173,17 +146,16 @@ ActionReply WvDialerHelper::create(const QVariantMap args) const
     // ComplexPair   srvAuxData;
     //_aux.append(srvAuxData);
 
-    //QDBusArgument PROPS, AUX;
-    //PROPS<<_props;
-    //AUX<<_aux;
+    QDBusArgument PROPS, AUX;
+    PROPS<<_props;
+    AUX<<_aux;
 
     _args
         << QString("%1.service").arg(WVDIALER)
-        << "replace"
-        << QVariant::fromValue(_props)   //PROPS.asVariant()
-        << QVariant::fromValue(_aux);     //AUX.asVariant();
+        << "replace";
+    _args<< PROPS;
+    _args<< AUX;
     msg.setArguments(_args);
-    QString sig = msg.signature();
     QDBusMessage res = QDBusConnection::systemBus()
             .call(msg, QDBus::Block);
     QString str;
@@ -192,7 +164,6 @@ ActionReply WvDialerHelper::create(const QVariantMap args) const
         str.append("\n");
     };
     retdata["msg"]          = str;
-    retdata["signature"]    = sig;
     switch (res.type()) {
     case QDBusMessage::ReplyMessage:
         retdata["code"]     = QString::number(0);

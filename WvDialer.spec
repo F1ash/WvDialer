@@ -16,12 +16,14 @@ Requires:      dbus
 Requires:      systemd
 Requires:      polkit
 Requires:      wvdial
+Requires:      hicolor-icon-theme
 
 BuildRequires: desktop-file-utils
 BuildRequires: qt5-qtbase-devel
 BuildRequires: kf5-kauth-devel
 BuildRequires: kf5-knotifications-devel
 BuildRequires: extra-cmake-modules
+BuildRequires: systemd
 
 %description
 WvDialer
@@ -52,8 +54,7 @@ popd
 desktop-file-validate %{buildroot}/%{_datadir}/applications/%{name}.desktop
 
 %files
-%license COPYING
-%doc README.md Changelog
+%doc README.md
 %{_bindir}/%{name}
 %{_libexecdir}/kf5/kauth/wvdialer_helper
 %{_datadir}/applications/%{name}.desktop
@@ -61,7 +62,9 @@ desktop-file-validate %{buildroot}/%{_datadir}/applications/%{name}.desktop
 %{_datadir}/polkit-1/actions/pro.russianfedora.wvdialer.policy
 %{_sysconfdir}/dbus-1/system.d/pro.russianfedora.wvdialer.conf
 %{_datadir}/knotifications5/%{name}.notifyrc
+%{_unitdir}/%{name}.service
+%{_datadir}/icons/hicolor/64x64/apps/%{name}.png
 
 %changelog
-* Sun Aug 21 2016 Fl@sh <kaperang07@gmail.com> - 1.0-1
+* Thu Sep  1 2016 Fl@sh <kaperang07@gmail.com> - 1.0-1
 - Initial build

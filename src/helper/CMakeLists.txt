@@ -14,6 +14,7 @@ add_definitions(
     ${Qt5Widgets_DEFINITIONS}
     ${Qt5DBus_DEFINITIONS})
 
+# FYI: helper names don't like a CAPs letters !!!
 add_executable(wvdialer_helper ${wvdialer_helper_SRCS} ${HELPER_MOC_SOURCES})
 target_link_libraries(wvdialer_helper ${HELPER_BUILD_PROJECT_LIBRARIES})
 install(TARGETS wvdialer_helper DESTINATION ${KAUTH_HELPER_INSTALL_DIR})

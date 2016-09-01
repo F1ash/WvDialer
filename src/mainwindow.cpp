@@ -80,7 +80,7 @@ void MainWindow::connectToWvDialerService()
     connection = QDBusConnection::systemBus();
     bool connected = connection.connect(
                 "org.freedesktop.systemd1",
-                "/org/freedesktop/systemd1/unit/wvdialer_2eservice",
+                "/org/freedesktop/systemd1/unit/WvDialer_2eservice",
                 "org.freedesktop.DBus.Properties",
                 "PropertiesChanged",
                 this,
@@ -165,7 +165,7 @@ void MainWindow::stopWvDialProcess()
         KNotification::event(
                    KNotification::Notification,
                    "WvDialer",
-                   QString("Wvdial session closed with exit code: %1\n%2\n%3")
+                   QString("Wvdial session closed with exit code: %1\nMSG: %2\nERR: %3")
                    .arg(code).arg(msg).arg(err),
                    this);
     } else {
@@ -191,10 +191,11 @@ void MainWindow::startWvDialProcess()
         QVariantMap args;
         Action act;
         switch (srvStatus) {
+        //case INACTIVE:
+        //    args["action"] = "create";
+        //    act.setName("pro.russianfedora.wvdialer.create");
+        //    break;
         case INACTIVE:
-            args["action"] = "create";
-            act.setName("pro.russianfedora.wvdialer.create");
-            break;
         case FAILED:
             args["action"] = "start";
             act.setName("pro.russianfedora.wvdialer.start");
@@ -209,19 +210,18 @@ void MainWindow::startWvDialProcess()
         if (job->exec()) {
             QString code = job->data().value("code").toString();
             QString msg  = job->data().value("msg").toString();
-            QString sig  = job->data().value("signature").toString();
             QString err  = job->data().value("err").toString();
             KNotification::event(
                        KNotification::Notification,
                        "WvDialer",
-                       QString("Wvdial session open with exit code: %1\n%2\n%3\n%4")
-                       .arg(code).arg(msg).arg(sig).arg(err),
+                       QString("Wvdial session open with exit code: %1\nMSG: %2\nERR: %3")
+                       .arg(code).arg(msg).arg(err),
                        this);
-            if ( code.toInt()==1 && counter<3 ) {
-                counter++;
-                srvStatus = INACTIVE;
-                startWvDialProcess();
-            };
+            //if ( code.toInt()==1 && counter<3 ) {
+            //    counter++;
+            //    srvStatus = INACTIVE;
+            //    startWvDialProcess();
+            //};
         } else {
             KNotification::event(
                        KNotification::Notification,
@@ -239,13 +239,13 @@ bool MainWindow::checkServiceStatus()
 {
     QDBusMessage msg = QDBusMessage::createMethodCall(
                 "org.freedesktop.systemd1",
-                "/org/freedesktop/systemd1/unit/wvdialer_2eservice",
+                "/org/freedesktop/systemd1/unit/WvDialer_2eservice",
                 "org.freedesktop.DBus.Properties",
                 "Get");
     QList<QVariant> _args;
     _args<<"org.freedesktop.systemd1.Unit"<<"ActiveState";
     msg.setArguments(_args);
-    bool sent = QDBusConnection::systemBus().callWithCallback(
+    bool sent = connection.callWithCallback(
                 msg, this, SLOT(receiveServiceStatus(QDBusMessage)));
     return sent;
 }

@@ -1,0 +1,11 @@
+[Unit]
+Description=WvDialer Utility
+
+[Service]
+Type=simple
+ExecStart=
+ExecStart=@/usr/bin/wvdial "/usr/bin/wvdial"
+ExecStop=/bin/kill -INT ${MAINPID}
+
+[Install]
+#WantedBy=multi-user.target

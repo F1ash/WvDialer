@@ -14,12 +14,15 @@
 #include <knotification.h>
 using namespace KAuth;
 
+// ActiveState contains a state value
+// that reflects whether the unit is currently active or not.
 enum SRV_STATUS {
     INACTIVE = -1,
     ACTIVE,
     FAILED,
     ACTIVATING,
-    DEACTIVATING
+    DEACTIVATING,
+    RELOADING
 };
 
 class MainWindow : public QMainWindow
@@ -29,7 +32,7 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
 
 private:
-    int                 counter = 0;
+    //int                 counter = 0;
     bool                deviceExist, startFlag;
     SRV_STATUS          srvStatus;
     QFileSystemWatcher *watcher;

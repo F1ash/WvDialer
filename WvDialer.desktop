@@ -2,8 +2,8 @@
 Name=WvDialer
 GenericName=WvDial connector
 Type=Application
-Categories=Utility;System;Qt;
-Icon=wvdialer
+Categories=Utility;Network;Qt;
+Icon=WvDialer
 Exec=WvDialer
 Terminal=false
 StartupNotify=true
