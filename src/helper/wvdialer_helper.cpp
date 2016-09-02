@@ -85,7 +85,7 @@ QVariantList &operator<<(QVariantList &list, const QDBusArgument &argument)
 }
 
 // Not implemented;
-// used persistent wvdialer.service systemd unit
+// used persistent WvDialer.service systemd unit
 ActionReply WvDialerHelper::create(const QVariantMap args) const
 {
     ActionReply reply;

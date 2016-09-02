@@ -89,8 +89,7 @@ void MainWindow::connectToWvDialerService()
     KNotification::event(
                 KNotification::Notification,
                 "WvDialer",
-                QString("%1 to org.freedesktop.systemd1").arg(_state),
-                this);
+                QString("%1 to org.freedesktop.systemd1").arg(_state));
 }
 void MainWindow::servicePropertyChanged(QDBusMessage message)
 {
@@ -119,7 +118,10 @@ void MainWindow::directoryChanged(QString dir)
             QString msg = QString("Device in %1 is %2connected.")
                     .arg("/dev/ttyUSB0")
                     .arg((deviceExist)? "":"dis");
-            trayIcon->showMessage("WvDialer", msg);
+            KNotification::event(
+                       KNotification::Notification,
+                       "WvDialer",
+                       msg);
             startFlag = deviceExist;
             if ( startFlag )
                 checkServiceStatus();
@@ -140,8 +142,7 @@ void MainWindow::startConnection()
                     KNotification::Notification,
                     "WvDialer",
                     QString("Device %1 is not connected.")
-                    .arg("/dev/ttyUSB0"),
-                    this);
+                    .arg("/dev/ttyUSB0"));
     };
 }
 void MainWindow::stopConnection()
@@ -166,15 +167,13 @@ void MainWindow::stopWvDialProcess()
                    KNotification::Notification,
                    "WvDialer",
                    QString("Wvdial session closed with exit code: %1\nMSG: %2\nERR: %3")
-                   .arg(code).arg(msg).arg(err),
-                   this);
+                   .arg(code).arg(msg).arg(err));
     } else {
         KNotification::event(
                    KNotification::Notification,
                    "WvDialer",
                    QString("ERROR: %1\n%2")
-                   .arg(job->error()).arg(job->errorText()),
-                   this);
+                   .arg(job->error()).arg(job->errorText()));
         trayIcon->setIcon(
                     QIcon::fromTheme("wvdialer_close",
                                      QIcon(":/wvdialer_close.png")));
@@ -182,7 +181,7 @@ void MainWindow::stopWvDialProcess()
 }
 void MainWindow::startWvDialProcess()
 {
-    // if device was connected, then run wvdial_helper
+    // if device was connected, then run wvdialer_helper
     if ( deviceExist ) {
         connectToWvDialerService();
         trayIcon->setIcon(
@@ -215,20 +214,13 @@ void MainWindow::startWvDialProcess()
                        KNotification::Notification,
                        "WvDialer",
                        QString("Wvdial session open with exit code: %1\nMSG: %2\nERR: %3")
-                       .arg(code).arg(msg).arg(err),
-                       this);
-            //if ( code.toInt()==1 && counter<3 ) {
-            //    counter++;
-            //    srvStatus = INACTIVE;
-            //    startWvDialProcess();
-            //};
+                       .arg(code).arg(msg).arg(err));
         } else {
             KNotification::event(
                        KNotification::Notification,
                        "WvDialer",
                        QString("ERROR: %1\n%2")
-                       .arg(job->error()).arg(job->errorText()),
-                       this);
+                       .arg(job->error()).arg(job->errorText()));
             trayIcon->setIcon(
                         QIcon::fromTheme("wvdialer_close",
                                          QIcon(":/wvdialer_close.png")));
@@ -261,9 +253,8 @@ void MainWindow::receiveServiceStatus(QDBusMessage _msg)
     KNotification::event(
                 KNotification::Notification,
                 "WvDialer",
-                QString("WvDialer is %1.").arg(status),
-                this);
-    if ( status=="inactive" ) {
+                QString("WvDialer is %1.").arg(status));
+    if        ( status=="inactive" ) {
         srvStatus = INACTIVE;
     } else if ( status=="active" ) {
         srvStatus = ACTIVE;
