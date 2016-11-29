@@ -41,6 +41,7 @@ private:
     QScrollArea        *scrolled;
     QSettings           settings;
     QDBusConnection     connection;
+    QString             currSrvName;
 
     void                initTrayIcon();
     bool                getFileExistanceState(const QString, const QString) const;

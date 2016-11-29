@@ -183,22 +183,22 @@ void MainWindow::startWvDialProcess()
 {
     // if device was connected, then run wvdialer_helper
     if ( deviceExist ) {
-        connectToWvDialerService();
+        //connectToWvDialerService();
         trayIcon->setIcon(
                     QIcon::fromTheme("wvdialer_reload",
                                      QIcon(":/wvdialer_reload.png")));
         QVariantMap args;
         Action act;
         switch (srvStatus) {
-        //case INACTIVE:
-        //    args["action"] = "create";
-        //    act.setName("pro.russianfedora.wvdialer.create");
-        //    break;
         case INACTIVE:
         case FAILED:
-            args["action"] = "start";
-            act.setName("pro.russianfedora.wvdialer.start");
+            args["action"] = "create";
+            act.setName("pro.russianfedora.wvdialer.create");
             break;
+        //case INACTIVE:
+        //    args["action"] = "start";
+        //    act.setName("pro.russianfedora.wvdialer.start");
+        //    break;
         default:
             return;
         };
@@ -210,6 +210,8 @@ void MainWindow::startWvDialProcess()
             QString code = job->data().value("code").toString();
             QString msg  = job->data().value("msg").toString();
             QString err  = job->data().value("err").toString();
+            currSrvName.clear();
+            currSrvName.append(job->data().value("srv").toString());
             KNotification::event(
                        KNotification::Notification,
                        "WvDialer",
@@ -288,6 +290,7 @@ void MainWindow::serviceStatusChanged()
         trayIcon->startAction->setEnabled(true);
         break;
     case ACTIVE:
+        connectToWvDialerService();
         trayIcon->setIcon(
                     QIcon::fromTheme("wvdialer_open",
                                      QIcon(":/wvdialer_open.png")));

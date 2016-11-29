@@ -28,6 +28,11 @@ Q_DECLARE_METATYPE(AuxParameters)
 WvDialerHelper::WvDialerHelper(QObject *parent) :
     QObject(parent)
 {
+    qDBusRegisterMetaType<PrimitivePair>();
+    qDBusRegisterMetaType<SrvParameters>();
+    qDBusRegisterMetaType<ComplexPair>();
+    qDBusRegisterMetaType<AuxParameters>();
+
 }
 
 QString WvDialerHelper::get_key_varmap(const QVariantMap &args, const QString& key) const
@@ -39,6 +44,15 @@ QString WvDialerHelper::get_key_varmap(const QVariantMap &args, const QString& k
         value = QString();
     };
     return value;
+}
+QString getRandomHex(const int &length)
+{
+    QString randomHex;
+    for(int i = 0; i < length; i++) {
+        int n = qrand() % 16;
+        randomHex.append(QString::number(n,16));
+    };
+    return randomHex;
 }
 
 QDBusArgument &operator<<(QDBusArgument &argument, const PrimitivePair &pair)
@@ -53,6 +67,31 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, PrimitivePair &pa
     argument.beginStructure();
     argument >> pair.name >> pair.value;
     argument.endStructure();
+    return argument;
+}
+QDBusArgument &operator<<(QDBusArgument &argument, const SrvParameters &list)
+{
+    int id = qMetaTypeId<PrimitivePair>();
+    argument.beginArray(id);
+    //foreach (PrimitivePair item, list) {
+    //    argument << item;
+    //};
+    SrvParameters::ConstIterator it = list.constBegin();
+    SrvParameters::ConstIterator end = list.constEnd();
+    for ( ; it != end; ++it)
+        argument << *it;
+    argument.endArray();
+    return argument;
+}
+const QDBusArgument &operator>>(const QDBusArgument &argument, SrvParameters &list)
+{
+    argument.beginArray();
+    while (!argument.atEnd()) {
+        PrimitivePair item;
+        argument >> item;
+        list.append(item);
+    };
+    argument.endArray();
     return argument;
 }
 
@@ -70,18 +109,30 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, ComplexPair &pair
     argument.endStructure();
     return argument;
 }
-
-QVariantList &operator<<(QVariantList &list, const QDBusArgument &argument)
+QDBusArgument &operator<<(QDBusArgument &argument, const AuxParameters &list)
+{
+    int id = qMetaTypeId<ComplexPair>();
+    argument.beginArray(id);
+    //foreach (ComplexPair item, list) {
+    //    argument << item;
+    //};
+    AuxParameters::ConstIterator it = list.constBegin();
+    AuxParameters::ConstIterator end = list.constEnd();
+    for ( ; it != end; ++it)
+        argument << *it;
+    argument.endArray();
+    return argument;
+}
+const QDBusArgument &operator>>(const QDBusArgument &argument, AuxParameters &list)
 {
     argument.beginArray();
     while (!argument.atEnd()) {
-        QDBusVariant item;
+        ComplexPair item;
         argument >> item;
-        list.append(item.variant());
-    }
+        list.append(item);
+    };
     argument.endArray();
-
-    return list;
+    return argument;
 }
 
 // Not implemented;
@@ -116,11 +167,6 @@ ActionReply WvDialerHelper::create(const QVariantMap args) const
     };
     */
 
-    qDBusRegisterMetaType<PrimitivePair>();
-    qDBusRegisterMetaType<SrvParameters>();
-    qDBusRegisterMetaType<ComplexPair>();
-    qDBusRegisterMetaType<AuxParameters>();
-
     QDBusMessage msg = QDBusMessage::createMethodCall(
                 "org.freedesktop.systemd1",
                 "/org/freedesktop/systemd1",
@@ -147,14 +193,16 @@ ActionReply WvDialerHelper::create(const QVariantMap args) const
     //_aux.append(srvAuxData);
 
     QDBusArgument PROPS, AUX;
-    PROPS<<_props;
-    AUX<<_aux;
+    PROPS   <<_props;
+    AUX     <<_aux;
 
+    QString servName = QString("%1-%2.service")
+            .arg(WVDIALER).arg(getRandomHex(10));
     _args
-        << QString("%1.service").arg(WVDIALER)
-        << "replace";
-    _args<< PROPS;
-    _args<< AUX;
+            << servName
+            << "replace"
+            << qVariantFromValue(PROPS)
+            << qVariantFromValue(AUX);
     msg.setArguments(_args);
     QDBusMessage res = QDBusConnection::systemBus()
             .call(msg, QDBus::Block);
@@ -164,6 +212,7 @@ ActionReply WvDialerHelper::create(const QVariantMap args) const
         str.append("\n");
     };
     retdata["msg"]          = str;
+    retdata["srv"]          = servName;
     switch (res.type()) {
     case QDBusMessage::ReplyMessage:
         retdata["code"]     = QString::number(0);
