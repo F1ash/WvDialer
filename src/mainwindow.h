@@ -59,6 +59,8 @@ private slots:
     void                directoryChanged(QString);
     void                startConnection();
     void                stopConnection();
+    void                startWvDialProcessFinished(KJob*);
+    void                stopWvDialProcessFinished(KJob*);
     void                receiveServiceStatus(QDBusMessage);
 };
 

@@ -1,7 +1,7 @@
 %global cmake_build_dir build-cmake
 
 Name:          WvDialer
-Version:       1.0
+Version:       1.1
 Release:       1%{?dist}
 Summary:       Dialer wrapped over wvdial
 Summary(ru):   Программа дозвона для модемов мобильных устройств
@@ -23,6 +23,7 @@ BuildRequires: qt5-qtbase-devel
 BuildRequires: kf5-kauth-devel
 BuildRequires: kf5-knotifications-devel
 BuildRequires: extra-cmake-modules
+%{?systemd_requires}
 BuildRequires: systemd
 
 %description
@@ -53,6 +54,23 @@ popd
 %check
 desktop-file-validate %{buildroot}/%{_datadir}/applications/%{name}.desktop
 
+%post
+/bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null || :
+%systemd_post %{name}@.service
+
+%preun
+%systemd_preun %{name}@.service
+
+%postun
+if [ $1 -eq 0 ] ; then
+    /bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null
+    /usr/bin/gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
+fi
+%systemd_postun %{name}@.service
+
+%posttrans
+/usr/bin/gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
+
 %files
 %doc README.md
 %{_bindir}/%{name}
@@ -66,5 +84,9 @@ desktop-file-validate %{buildroot}/%{_datadir}/applications/%{name}.desktop
 %{_datadir}/icons/hicolor/64x64/apps/%{name}.png
 
 %changelog
+* Thu Feb  2 2017 Fl@sh <kaperang07@gmail.com> - 1.1-1
+- version updated;
+- added %%post, %%preun, %%postun, %%posttrans macroses;
+
 * Thu Sep  1 2016 Fl@sh <kaperang07@gmail.com> - 1.0-1
 - Initial build

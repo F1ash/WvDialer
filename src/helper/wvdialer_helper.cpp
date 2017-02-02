@@ -177,15 +177,15 @@ ActionReply WvDialerHelper::create(const QVariantMap args) const
 
     SrvParameters _props;
     PrimitivePair srvType, execStart, execStop;
-    srvType.name    = "Type";
-    srvType.value   = "simple";
+    //srvType.name    = "Type";
+    //srvType.value   = "simple";
     execStart.name  = "ExecStart";
     execStart.value = QLatin1String("/usr/bin/wvdial");
-    execStop.name   = "ExecStop";
-    execStop.value  = QLatin1String("/bin/kill -INT ${MAINPID}");
-    _props.append(srvType);
+    //execStop.name   = "ExecStop";
+    //execStop.value  = QString("/bin/kill -INT ${MAINPID}");
+    //_props.append(srvType);
     _props.append(execStart);
-    _props.append(execStop);
+    //_props.append(execStop);
 
     AuxParameters _aux;
     // aux is currently unused and should be passed as empty array.
@@ -196,8 +196,8 @@ ActionReply WvDialerHelper::create(const QVariantMap args) const
     PROPS   <<_props;
     AUX     <<_aux;
 
-    QString servName = QString("%1-%2.service")
-            .arg(WVDIALER).arg(getRandomHex(10));
+    QString servName = QString("%1.service")
+            .arg(WVDIALER);
     _args
             << servName
             << "replace"
@@ -220,6 +220,7 @@ ActionReply WvDialerHelper::create(const QVariantMap args) const
     case QDBusMessage::ErrorMessage:
         retdata["code"]     = QString::number(1);
         retdata["err"]      = res.errorMessage();
+        retdata["errn"]     = res.errorName();
         break;
     default:
         retdata["code"]     = QString::number(1);
@@ -242,6 +243,8 @@ ActionReply WvDialerHelper::start(const QVariantMap args) const
         return reply;
     };
 
+    QString servName = QString("%1.service")
+            .arg(WVDIALER);
     QVariantMap retdata;
     QDBusMessage msg = QDBusMessage::createMethodCall(
                 "org.freedesktop.systemd1",
@@ -249,7 +252,7 @@ ActionReply WvDialerHelper::start(const QVariantMap args) const
                 "org.freedesktop.systemd1.Manager",
                 "StartUnit");
     QList<QVariant> _args;
-    _args<<QString("%1.service").arg(WVDIALER)<<"fail";
+    _args<<servName<<"fail";
     msg.setArguments(_args);
     QDBusMessage res = QDBusConnection::systemBus()
             .call(msg, QDBus::Block);
@@ -259,6 +262,7 @@ ActionReply WvDialerHelper::start(const QVariantMap args) const
         str.append("\n");
     };
     retdata["msg"]          = str;
+    retdata["srv"]          = servName;
     switch (res.type()) {
     case QDBusMessage::ReplyMessage:
         retdata["code"]     = QString::number(0);
@@ -266,6 +270,7 @@ ActionReply WvDialerHelper::start(const QVariantMap args) const
     case QDBusMessage::ErrorMessage:
         retdata["code"]     = QString::number(1);
         retdata["err"]      = res.errorMessage();
+        retdata["errn"]     = res.errorName();
         break;
     default:
         retdata["code"]     = QString::number(1);
@@ -288,6 +293,8 @@ ActionReply WvDialerHelper::stop(const QVariantMap args) const
         return reply;
     };
 
+    QString servName = QString("%1.service")
+            .arg(WVDIALER);
     QVariantMap retdata;
     QDBusMessage msg = QDBusMessage::createMethodCall(
                 "org.freedesktop.systemd1",
@@ -295,7 +302,7 @@ ActionReply WvDialerHelper::stop(const QVariantMap args) const
                 "org.freedesktop.systemd1.Manager",
                 "StopUnit");
     QList<QVariant> _args;
-    _args<<QString("%1.service").arg(WVDIALER)<<"fail";
+    _args<<servName<<"fail";
     msg.setArguments(_args);
     QDBusMessage res = QDBusConnection::systemBus()
             .call(msg, QDBus::Block);
@@ -305,6 +312,7 @@ ActionReply WvDialerHelper::stop(const QVariantMap args) const
         str.append("\n");
     };
     retdata["msg"]          = str;
+    retdata["srv"]          = servName;
     switch (res.type()) {
     case QDBusMessage::ReplyMessage:
         retdata["code"]     = QString::number(0);
@@ -312,6 +320,7 @@ ActionReply WvDialerHelper::stop(const QVariantMap args) const
     case QDBusMessage::ErrorMessage:
         retdata["code"]     = QString::number(1);
         retdata["err"]      = res.errorMessage();
+        retdata["errn"]     = res.errorName();
         break;
     default:
         retdata["code"]     = QString::number(1);

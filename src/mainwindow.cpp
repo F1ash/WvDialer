@@ -26,7 +26,7 @@ MainWindow::MainWindow(QWidget *parent) :
     initTrayIcon();
     restoreGeometry(settings.value("Geometry").toByteArray());
     hide();
-    connectToWvDialerService();
+    //connectToWvDialerService();
     watcher = new QFileSystemWatcher(this);
     connect(watcher, SIGNAL(directoryChanged(QString)),
             this, SLOT(directoryChanged(QString)));
@@ -159,25 +159,9 @@ void MainWindow::stopWvDialProcess()
     act.setArguments(args);
     ExecuteJob *job = act.execute();
     job->setAutoDelete(true);
-    if (job->exec()) {
-        QString code = job->data().value("code").toString();
-        QString msg  = job->data().value("msg").toString();
-        QString err  = job->data().value("err").toString();
-        KNotification::event(
-                   KNotification::Notification,
-                   "WvDialer",
-                   QString("Wvdial session closed with exit code: %1\nMSG: %2\nERR: %3")
-                   .arg(code).arg(msg).arg(err));
-    } else {
-        KNotification::event(
-                   KNotification::Notification,
-                   "WvDialer",
-                   QString("ERROR: %1\n%2")
-                   .arg(job->error()).arg(job->errorText()));
-        trayIcon->setIcon(
-                    QIcon::fromTheme("wvdialer_close",
-                                     QIcon(":/wvdialer_close.png")));
-    };
+    connect(job, SIGNAL(finished(KJob*)),
+            this, SLOT(stopWvDialProcessFinished(KJob*)));
+    job->start();
 }
 void MainWindow::startWvDialProcess()
 {
@@ -192,13 +176,13 @@ void MainWindow::startWvDialProcess()
         switch (srvStatus) {
         case INACTIVE:
         case FAILED:
-            args["action"] = "create";
-            act.setName("pro.russianfedora.wvdialer.create");
-            break;
-        //case INACTIVE:
-        //    args["action"] = "start";
-        //    act.setName("pro.russianfedora.wvdialer.start");
+        //    args["action"] = "create";
+        //    act.setName("pro.russianfedora.wvdialer.create");
         //    break;
+        //case INACTIVE:
+            args["action"] = "start";
+            act.setName("pro.russianfedora.wvdialer.start");
+            break;
         default:
             return;
         };
@@ -206,27 +190,9 @@ void MainWindow::startWvDialProcess()
         act.setArguments(args);
         ExecuteJob *job = act.execute();
         job->setAutoDelete(true);
-        if (job->exec()) {
-            QString code = job->data().value("code").toString();
-            QString msg  = job->data().value("msg").toString();
-            QString err  = job->data().value("err").toString();
-            currSrvName.clear();
-            currSrvName.append(job->data().value("srv").toString());
-            KNotification::event(
-                       KNotification::Notification,
-                       "WvDialer",
-                       QString("Wvdial session open with exit code: %1\nMSG: %2\nERR: %3")
-                       .arg(code).arg(msg).arg(err));
-        } else {
-            KNotification::event(
-                       KNotification::Notification,
-                       "WvDialer",
-                       QString("ERROR: %1\n%2")
-                       .arg(job->error()).arg(job->errorText()));
-            trayIcon->setIcon(
-                        QIcon::fromTheme("wvdialer_close",
-                                         QIcon(":/wvdialer_close.png")));
-        };
+        connect(job, SIGNAL(finished(KJob*)),
+                this, SLOT(startWvDialProcessFinished(KJob*)));
+        job->start();
     };
 }
 bool MainWindow::checkServiceStatus()
@@ -243,6 +209,57 @@ bool MainWindow::checkServiceStatus()
                 msg, this, SLOT(receiveServiceStatus(QDBusMessage)));
     return sent;
 }
+void MainWindow::startWvDialProcessFinished(KJob *_job)
+{
+    ExecuteJob *job = static_cast<ExecuteJob*>(_job);
+    if ( job!=nullptr ) {
+        QString code = job->data().value("code").toString();
+        QString msg  = job->data().value("msg").toString();
+        QString err  = job->data().value("err").toString();
+        QString errn = job->data().value("errn").toString();
+        currSrvName.clear();
+        currSrvName.append(job->data().value("srv").toString());
+        KNotification::event(
+                   KNotification::Notification,
+                   "WvDialer",
+                   QString("Wvdial session open with exit code: %1\nMSG: %2\nERR: %3\nERRN: %4")
+                   .arg(code).arg(msg).arg(err).arg(errn));
+        //QTextStream s(stdout);
+        //s << currSrvName << " currSrvName" << endl;
+    } else {
+        KNotification::event(
+                   KNotification::Notification,
+                   "WvDialer",
+                   QString("ERROR: start failed."));
+        trayIcon->setIcon(
+                    QIcon::fromTheme("wvdialer_close",
+                                     QIcon(":/wvdialer_close.png")));
+    };
+    checkServiceStatus();
+}
+void MainWindow::stopWvDialProcessFinished(KJob *_job)
+{
+    ExecuteJob *job = static_cast<ExecuteJob*>(_job);
+    if ( job!=nullptr ) {
+        QString code = job->data().value("code").toString();
+        QString msg  = job->data().value("msg").toString();
+        QString err  = job->data().value("err").toString();
+        KNotification::event(
+                   KNotification::Notification,
+                   "WvDialer",
+                   QString("Wvdial session closed with exit code: %1\nMSG: %2\nERR: %3")
+                   .arg(code).arg(msg).arg(err));
+    } else {
+        KNotification::event(
+                   KNotification::Notification,
+                   "WvDialer",
+                   QString("ERROR: stop failed."));
+        trayIcon->setIcon(
+                    QIcon::fromTheme("wvdialer_close",
+                                     QIcon(":/wvdialer_close.png")));
+    };
+    checkServiceStatus();
+}
 void MainWindow::receiveServiceStatus(QDBusMessage _msg)
 {
     QList<QVariant> args = _msg.arguments();
@@ -252,22 +269,26 @@ void MainWindow::receiveServiceStatus(QDBusMessage _msg)
     QStringList l = str.split('"');
     if ( l.length()<3 ) return;
     QString status = l.at(1);
-    KNotification::event(
-                KNotification::Notification,
-                "WvDialer",
-                QString("WvDialer is %1.").arg(status));
+    SRV_STATUS newSrvStatus;
     if        ( status=="inactive" ) {
-        srvStatus = INACTIVE;
+        newSrvStatus = INACTIVE;
     } else if ( status=="active" ) {
-        srvStatus = ACTIVE;
+        newSrvStatus = ACTIVE;
     } else if ( status=="failed" ) {
-        srvStatus = FAILED;
+        newSrvStatus = FAILED;
     } else if ( status=="activating" ) {
-        srvStatus = ACTIVATING;
+        newSrvStatus = ACTIVATING;
     } else if ( status=="deactivating" ) {
-        srvStatus = DEACTIVATING;
+        newSrvStatus = DEACTIVATING;
     } else {
-        srvStatus = INACTIVE;
+        newSrvStatus = INACTIVE;
+    };
+    if ( newSrvStatus!=srvStatus ) {
+        KNotification::event(
+                    KNotification::Notification,
+                    "WvDialer",
+                    QString("WvDialer is %1.").arg(status));
+        srvStatus = newSrvStatus;
     };
     serviceStatusChanged();
 }
